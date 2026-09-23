@@ -18,6 +18,14 @@ export const fixtureRecommendations = RecommendationsResponseSchema.parse({
   ai_error: { code: "missing_api_key", message: "Тестовый пример без AI." },
   evidence: [],
 });
+export const fixtureCompleteRecommendations = RecommendationsResponseSchema.parse({
+  ...fixtureRecommendations, status: "complete", ai_error: null,
+  notes: { summary: "Тестовое объяснение проверенных замен; модель не вызывалась.",
+    items: fixtureRecommendations.candidates.map(c => ({ candidate_id: c.id,
+      explanation: `Расчётный прирост Score: ${c.score_gain}.`, tradeoff: `Изменение расходов: ${c.cost_delta}.`,
+      evidence_ids: [`candidate:${c.id}`] })) },
+  evidence: fixtureRecommendations.candidates.map(c => ({ id: `candidate:${c.id}`, label: "Тестовый вариант", value: JSON.stringify(c) })),
+});
 export const fixtureEvent = EventResponseSchema.parse({
   dataset_version: "fixture-only", event_version: FEATURES_VERSION, event: cityEvents[1],
   mode: "event_practice", eligible_for_leaderboard: false, decisions: fixtureSimulation.decisions,
