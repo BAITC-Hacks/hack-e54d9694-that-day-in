@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type PointerEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type PointerEvent, type CSSProperties } from "react";
 import {
   Minus,
   Plus,
@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Wrench,
   Cross,
+  CloudRain, Sun, Zap, Construction,
 } from "lucide-react";
 import { dataset } from "@/data";
 import infrastructure from "@/features/map/infrastructure.json";
@@ -22,6 +23,8 @@ import {
   type LandmarkKind,
 } from "@/features/map/geography";
 import type { Decision } from "@/shared/contracts";
+import { CITY_CAMERA, districtCamera, districtAtPoint, type Camera } from "@/features/map/camera";
+import type { MapFeedback } from "@/features/map/use-playground";
 
 const measureIcons = {
   transport: BusFront,
@@ -127,14 +130,51 @@ export default function CityMap({
   onSelect,
   decisions,
   changes,
+  focused = null,
+  onUnfocus,
+  armedEvent,
+  onPlaceEvent,
+  feedback,
 }: {
   selected: string | null;
   onSelect: (id: string) => void;
   decisions: Decision[];
   changes?: Record<string, number>;
+  focused?: string | null;
+  onUnfocus?: () => void;
+  armedEvent?: string | null;
+  onPlaceEvent?: (eventId: string, districtId: string | null) => void;
+  feedback?: MapFeedback | null;
 }) {
-  const [camera, setCamera] = useState({ x: -25, y: 0, width: 1250 });
+  const [camera, setCamera] = useState<Camera>(CITY_CAMERA);
+  const cameraRef = useRef<Camera>(CITY_CAMERA);
+  const animation = useRef<number | null>(null);
+  const clipId = useId().replace(/:/g, "");
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
   const svg = useRef<SVGSVGElement>(null);
+  const paintCamera = useCallback((next: Camera) => {
+    cameraRef.current = next;
+    svg.current?.setAttribute("viewBox", `${next.x} ${next.y} ${next.width} ${next.width * 0.68}`);
+  }, []);
+  const animateCamera = useCallback((target: Camera) => {
+    if (animation.current !== null) cancelAnimationFrame(animation.current);
+    const start = { ...cameraRef.current };
+    if (start.x === target.x && start.y === target.y && start.width === target.width) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { paintCamera(target); setCamera(target); return; }
+    const began = performance.now();
+    svg.current?.setAttribute("data-moving", "true");
+    const frame = (now: number) => {
+      const progress = Math.min(1, (now - began) / 650), eased = 1 - Math.pow(1 - progress, 3);
+      paintCamera({ x: start.x + (target.x - start.x) * eased, y: start.y + (target.y - start.y) * eased, width: start.width + (target.width - start.width) * eased });
+      if (progress < 1) animation.current = requestAnimationFrame(frame);
+      else { animation.current = null; svg.current?.setAttribute("data-moving", "false"); setCamera(target); }
+    };
+    animation.current = requestAnimationFrame(frame);
+  }, [paintCamera]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => animateCamera(focused ? districtCamera(focused) : CITY_CAMERA));
+    return () => { cancelAnimationFrame(frame); if (animation.current !== null) cancelAnimationFrame(animation.current); };
+  }, [focused, animateCamera]);
   const drag = useRef<{
     id: number;
     x: number;
@@ -146,24 +186,25 @@ export default function CityMap({
   const suppressClick = useRef(false);
   const height = camera.width * 0.68;
   function zoom(factor: number) {
-    setCamera((c) => {
-      const width = Math.max(780, Math.min(1500, c.width * factor));
-      return {
+    const c = cameraRef.current;
+      const width = Math.max(420, Math.min(1500, c.width * factor));
+      animateCamera({
         x: c.x + (c.width - width) / 2,
         y: c.y + (c.width - width) * 0.34,
         width,
-      };
-    });
+      });
   }
   function pointerDown(e: PointerEvent<SVGSVGElement>) {
-    if (e.button !== 0 || drag.current) return;
+    if (e.button !== 0 || drag.current || armedEvent) return;
+    if (animation.current !== null) cancelAnimationFrame(animation.current);
+    svg.current?.setAttribute("data-moving", "false");
     suppressClick.current = false;
     drag.current = {
       id: e.pointerId,
       x: e.clientX,
       y: e.clientY,
-      cx: camera.x,
-      cy: camera.y,
+      cx: cameraRef.current.x,
+      cy: cameraRef.current.y,
       moved: false,
     };
   }
@@ -181,23 +222,32 @@ export default function CityMap({
     suppressClick.current = true;
     svg.current.setPointerCapture(e.pointerId);
     const ratio = Math.max(
-      camera.width / svg.current.clientWidth,
-      height / svg.current.clientHeight,
+      cameraRef.current.width / svg.current.clientWidth,
+      cameraRef.current.width * 0.68 / svg.current.clientHeight,
     );
-    setCamera((c) => ({
-      ...c,
+    paintCamera({
+      ...cameraRef.current,
       x: Math.max(-700, Math.min(1100, d.cx - dx * ratio)),
       y: Math.max(-500, Math.min(800, d.cy - dy * ratio)),
-    }));
+    });
   }
   function stopDrag(e: PointerEvent<SVGSVGElement>) {
     drag.current = null;
+    setCamera({ ...cameraRef.current });
     if (svg.current?.hasPointerCapture(e.pointerId))
       svg.current.releasePointerCapture(e.pointerId);
   }
   const select = (id: string) => {
-    if (!suppressClick.current) onSelect(id);
+    if (armedEvent) onPlaceEvent?.(armedEvent, id);
+    else if (!suppressClick.current) onSelect(id);
   };
+  function targetDistrict(clientX: number, clientY: number) {
+    if (focused) return focused;
+    const matrix = svg.current?.getScreenCTM();
+    if (!matrix) return null;
+    const point = new DOMPoint(clientX, clientY).matrixTransform(matrix.inverse());
+    return districtAtPoint(point.x, point.y);
+  }
   return (
     <div className="map-stage">
       <svg
@@ -205,6 +255,16 @@ export default function CityMap({
         className="city-scene"
         viewBox={`${camera.x} ${camera.y} ${camera.width} ${height}`}
         aria-label="Стилизованная карта районов Астаны"
+        data-focused={focused ?? "city"}
+        onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setDropTarget(targetDistrict(e.clientX, e.clientY)); }}
+        onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropTarget(null); }}
+        onDrop={e => {
+          e.preventDefault(); setDropTarget(null);
+          const id = e.dataTransfer.getData("application/x-akim-event");
+          const districtId = targetDistrict(e.clientX, e.clientY);
+          if (id) onPlaceEvent?.(id, districtId);
+        }}
+        onClick={e => { if (armedEvent) onPlaceEvent?.(armedEvent, targetDistrict(e.clientX, e.clientY)); }}
         onPointerDown={pointerDown}
         onPointerMove={pointerMove}
         onPointerUp={stopDrag}
@@ -217,6 +277,7 @@ export default function CityMap({
         }}
       >
         <defs>
+          {zones.map(zone => <clipPath key={zone.id} id={`${clipId}-${zone.id}`}><polygon points={zone.polygon}/></clipPath>)}
           <filter
             id="landmark-shadow"
             x="-70%"
@@ -233,11 +294,14 @@ export default function CityMap({
             />
           </filter>
         </defs>
+        <g className="map-world" clipPath={focused ? `url(#${clipId}-${focused})` : undefined} data-district={focused ?? undefined}>
         <image href="/maps/astana.svg" x="0" y="0" width="1200" height="850" />
         <g className="zone-boundaries">
           {zones.map((zone) => (
             <polygon
               key={zone.id}
+              data-district={zone.id}
+              className={dropTarget === zone.id ? "event-drop-hover" : undefined}
               points={zone.polygon}
               fill={zone.color}
               fillOpacity={selected === zone.id ? 0.17 : 0.09}
@@ -245,7 +309,7 @@ export default function CityMap({
               strokeOpacity={selected === zone.id ? 0.9 : 0.55}
               strokeWidth={selected === zone.id ? 3 : 1.5}
               strokeDasharray={selected === zone.id ? undefined : "6 5"}
-              onClick={() => select(zone.id)}
+              onClick={e => { e.stopPropagation(); select(zone.id); }}
             />
           ))}
         </g>
@@ -340,7 +404,7 @@ export default function CityMap({
             );
           })}
         </g>
-        {zones.map((zone) => {
+        {zones.filter(zone => !focused || zone.id === focused).map((zone) => {
           const active = selected === zone.id;
           const count = decisions.filter(
             (d) => d.district_id === zone.id,
@@ -348,17 +412,19 @@ export default function CityMap({
           return (
             <g
               key={zone.id}
+              data-district={zone.id}
               role="button"
               tabIndex={0}
               aria-label={`Район ${zone.name}`}
               aria-pressed={active}
               className={`district-pin ${active ? "active" : ""}`}
               transform={`translate(${zone.x} ${zone.y})`}
-              onClick={() => select(zone.id)}
+              onClick={e => { e.stopPropagation(); select(zone.id); }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  onSelect(zone.id);
+                  if (armedEvent) onPlaceEvent?.(armedEvent, zone.id);
+                  else onSelect(zone.id);
                 }
               }}
             >
@@ -471,6 +537,18 @@ export default function CityMap({
             </g>
           );
         })}
+        {feedback ? <g key={feedback.key} className="map-feedback" pointerEvents="none" aria-hidden="true">
+          {feedback.districts.map(change => {
+            const zone = zones.find(z => z.id === change.id)!;
+            const Icon = feedback.eventId === "heavy-rain" ? CloudRain : feedback.eventId === "heat-wave" ? Sun : feedback.eventId === "road-repair" ? Construction : feedback.eventId ? Zap : change.positive ? Leaf : Wrench;
+            return <g key={zone.id} clipPath={`url(#${clipId}-${zone.id})`}>
+              <polygon className={`zone-feedback ${change.positive && change.negative ? "mixed" : change.positive ? "positive" : "negative"}`} points={zone.polygon}/>
+              {feedback.eventId === "heavy-rain" ? Array.from({length:18}, (_, i) => <line key={i} className="rain-streak" style={{"--delay":`${i % 6 * 75}ms`} as CSSProperties} x1={zone.x-145+(i%6)*58} y1={zone.y-100+Math.floor(i/6)*65} x2={zone.x-152+(i%6)*58} y2={zone.y-80+Math.floor(i/6)*65}/>) : null}
+              <g transform={`translate(${zone.x} ${zone.y - 76})`}><g className={`effect-badge ${change.positive ? "positive" : "negative"}`}><circle r="25"/><Icon x={-12} y={-12} width={24} height={24}/></g></g>
+            </g>;
+          })}
+        </g> : null}
+        </g>
       </svg>
       <div className="map-orientation">
         <Navigation2 size={17} />
@@ -480,7 +558,7 @@ export default function CityMap({
         <button
           aria-label="Увеличить карту"
           onClick={() => zoom(0.8)}
-          disabled={camera.width <= 780}
+          disabled={camera.width <= 420}
         >
           <Plus size={19} />
         </button>
@@ -493,7 +571,7 @@ export default function CityMap({
         </button>
         <button
           aria-label="Вернуть масштаб карты"
-          onClick={() => setCamera({ x: -25, y: 0, width: 1250 })}
+          onClick={() => { onUnfocus?.(); animateCamera(CITY_CAMERA); }}
         >
           <Scan size={18} />
         </button>

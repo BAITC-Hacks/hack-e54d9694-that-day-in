@@ -8,4 +8,6 @@ export const cityEvents = CityEventSchema.array().parse([
     effects: [{ district_id: null, deltas: { E1: -4, S2: -3 } }] },
   { id: "utility-failure", title: "Сбой городских сервисов", description: "Учебное событие: перебои обслуживания. Зарезервируйте 10 единиц на восстановление.", reserve_cost: 10,
     effects: [{ district_id: null, deltas: { C1: -6, C2: -4 } }] },
+  { id: "road-repair", title: "Ремонт улиц", description: "Учебное событие: плановый ремонт улучшает состояние улиц и ЖКХ, но временно затрудняет движение. Резерв — 10 единиц.", reserve_cost: 10,
+    effects: [{ district_id: null, deltas: { T1: -3, B2: 5, C1: 6 } }] },
 ]);

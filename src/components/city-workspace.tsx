@@ -17,7 +17,6 @@ import {
   UsersRound,
   Wallet,
   X,
-  ChevronDown,
   ChartNoAxesCombined,
   FileText,
   CloudSun,
@@ -29,7 +28,8 @@ import { useReport } from "@/features/simulator/use-report";
 import { decisionsKey } from "@/features/scenario-tools/client";
 import ScenarioTools, { type ToolName } from "./scenario-tools";
 import ReportExplanation from "./report-explanation";
-import CityMap from "./city-map";
+import MapStudio from "./map-studio";
+import { usePlayground } from "@/features/map/use-playground";
 import type { Decision, Direction } from "@/shared/contracts";
 
 const categoryIcons = {
@@ -84,7 +84,11 @@ export default function CityWorkspace() {
   const { decisions, simulation } = scenario;
   const [selected, setSelected] = useState("nura");
   const [direction, setDirection] = useState<Direction | "all">("all");
-  const [forecast, setForecast] = useState(false);
+  const [screen, setScreen] = useState<"city" | "analysis">("city");
+  const [focused, setFocused] = useState<string | null>(null);
+  const playground = usePlayground(decisions);
+  const planningDataset = { ...dataset, rules: { ...dataset.rules, budget: dataset.rules.budget - playground.emergency_reserve } };
+  function selectDistrict(id: string) { setSelected(id); setFocused(id); }
   const [tab, setTab] = useState<ToolName | "result">("result");
   const [editing, setEditing] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
@@ -93,19 +97,15 @@ export default function CityWorkspace() {
     about = useRef<HTMLDialogElement>(null);
   const analysis = useRef<HTMLElement>(null);
   const district = dataset.districts.find((d) => d.id === selected)!;
-  const districtState = simulation.districts.find(
-    (d) => d.district_id === selected,
-  )!;
-  const values = forecast ? districtState.after : districtState.before;
-  const summary = forecast ? simulation.after : simulation.before;
   const measures = dataset.measures.filter(
     (m) => direction === "all" || m.direction_id === direction,
   );
   function replace(next: Decision[]) {
+    if (!playground.checkPlan(next)) { setNotice("План не применён: не хватает бюджета с учётом событий карты. Уберите событие и повторите."); return false; }
     scenario.replace(next);
     report.reset();
     setNotice("");
-    setForecast(true);
+    return true;
   }
   function openCatalog(id?: Direction | "all", measureId?: string) {
     setEditing(measureId ?? null);
@@ -113,14 +113,15 @@ export default function CityWorkspace() {
     catalog.current?.showModal();
   }
   function evaluate() {
+    setScreen("analysis");
     setTab("result");
     void report.run(decisions);
-    analysis.current?.scrollIntoView({
+    requestAnimationFrame(() => analysis.current?.scrollIntoView({
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
         ? "instant"
         : "smooth",
       block: "start",
-    });
+    }));
   }
   return (
     <div className="application">
@@ -132,18 +133,18 @@ export default function CityWorkspace() {
           </span>
         </Link>
         <nav aria-label="Основная навигация">
-          <a href="#city">Город</a>
-          <a href="#scenario">
+          <a href="#city" onClick={() => setScreen("city")}>Город</a>
+          <a href="#scenario" onClick={() => setScreen("city")}>
             Мой сценарий{" "}
             <span className="count-pill">{decisions.length}/5</span>
           </a>
-          <a href="#analysis">Анализ и сравнение</a>
+          <a href="#analysis" onClick={() => setScreen("analysis")}>Анализ и сравнение</a>
         </nav>
         <div className="header-end">
           <span className="header-budget">
             <Wallet size={16} />
             <span>
-              Бюджет <strong>{simulation.budget.remaining}</strong>
+              Бюджет <strong>{playground.simulation.budget.remaining}</strong>
               <small> / 100</small>
             </span>
           </span>
@@ -157,187 +158,16 @@ export default function CityWorkspace() {
         </div>
       </header>
       <main>
-        <section className="intro section-width">
-          <div>
-            <p className="section-kicker">
-              <span />
-              ГОРОД ВАШИХ РЕШЕНИЙ
-            </p>
-            <h1>
-              Решения сегодня.
-              <br />
-              <em>Астана завтра.</em>
-            </h1>
-            <p className="intro-copy">
-              Транспорт, экология, социальная инфраструктура, безопасность и
-              сервисы.
-              <br className="desktop-break" /> Выберите приоритеты и оцените,
-              как изменится качество жизни города.
-            </p>
-          </div>
-          <div className="intro-aside">
-            <span className="intro-number">05</span>
-            <span>
-              направлений.
-              <br />
-              Один целостный взгляд.
-            </span>
-            <div className="ornament-band" aria-hidden="true" />
+        <section className="studio-intro section-width">
+          <div><p className="section-kicker">ГОРОД ВАШИХ РЕШЕНИЙ</p><h1>Весь город. <em>В ваших руках.</em></h1><p>Соберите план, исследуйте районы и посмотрите, как город отвечает на ваши решения.</p></div>
+          <div className="workspace-switch" role="tablist" aria-label="Рабочий экран">
+            <button role="tab" aria-selected={screen === "city"} aria-controls="workspace-city" onClick={() => setScreen("city")}>Карта и решения</button>
+            <button role="tab" aria-selected={screen === "analysis"} aria-controls="analysis" onClick={() => setScreen("analysis")}>Аналитика и сравнение <ArrowUpRight size={15}/></button>
           </div>
         </section>
-        <section
-          id="city"
-          className="city-section section-width"
-          aria-label="Карта и показатели районов"
-        >
-          <div className="map-toolbar">
-            <div className="map-heading">
-              <MapPin size={19} />
-              <strong>Астана</strong>
-              <span>Карта сценария</span>
-            </div>
-            <div className="view-toggle" aria-label="Состояние города">
-              <button
-                aria-pressed={!forecast}
-                className={!forecast ? "active" : ""}
-                onClick={() => setForecast(false)}
-              >
-                До решений
-              </button>
-              <button
-                aria-pressed={forecast}
-                className={forecast ? "active" : ""}
-                onClick={() => setForecast(true)}
-              >
-                После решений
-              </button>
-            </div>
-            <span className="horizon">
-              <Clock3 size={14} />
-              Горизонт — 2 года
-            </span>
-          </div>
-          <div className="map-layout">
-            <CityMap
-              selected={selected}
-              onSelect={setSelected}
-              decisions={decisions}
-              changes={
-                forecast
-                  ? Object.fromEntries(
-                      dataset.districts.map((d) => [
-                        d.id,
-                        simulation.after.district_scores[d.id] -
-                          simulation.before.district_scores[d.id],
-                      ]),
-                    )
-                  : undefined
-              }
-            />
-            <aside
-              className="district-card"
-              aria-label={`Район ${district.name}: показатели`}
-            >
-              <div className="district-overline">
-                <span>ВЫБРАННЫЙ РАЙОН</span>
-                <MapPin size={14} />
-              </div>
-              <h2>{district.name}</h2>
-              <p>{district.profile}</p>
-              <div className="district-index">
-                <span>Индекс района</span>
-                <strong>
-                  {format(summary.district_scores[district.id])}
-                  <small>/100</small>
-                </strong>
-                {forecast ? (
-                  <b>
-                    {simulation.after.district_scores[district.id] >=
-                    simulation.before.district_scores[district.id]
-                      ? "+"
-                      : ""}
-                    {format(
-                      simulation.after.district_scores[district.id] -
-                        simulation.before.district_scores[district.id],
-                    )}{" "}
-                    к исходному
-                  </b>
-                ) : null}
-              </div>
-              <button
-                className="primary-button"
-                onClick={() => openCatalog()}
-                disabled={!scenario.loaded}
-              >
-                Выбрать мероприятие <ArrowUpRight size={17} />
-              </button>
-              <details className="district-more">
-                <summary>
-                  Показатели района <ChevronDown size={14} />
-                </summary>
-                <div className="metric-list">
-                  {dataset.indicators.map((i) => (
-                    <div className="metric-row" key={i.code}>
-                      <span>{labels[i.code]}</span>
-                      <strong>
-                        {Number(values[i.code].toFixed(2))}
-                        {forecast ? (
-                          <small>
-                            {" "}
-                            ({districtState.delta[i.code] > 0 ? "+" : ""}
-                            {Number(districtState.delta[i.code].toFixed(2))})
-                          </small>
-                        ) : null}
-                      </strong>
-                      <div>
-                        <i style={{ width: `${values[i.code]}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </details>
-            </aside>
-          </div>
-          <div className="map-caption">
-            <span>
-              <i />
-              Выберите район на карте или в списке
-            </span>
-            <nav aria-label="Выбор района">
-              {dataset.districts.map((d) => (
-                <button
-                  aria-pressed={selected === d.id}
-                  key={d.id}
-                  className={selected === d.id ? "selected" : ""}
-                  onClick={() => setSelected(d.id)}
-                >
-                  {d.name}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </section>
-        <section id="scenario" className="scenario-section section-width">
-          <div className="section-heading">
-            <div>
-              <p className="section-kicker">01 / ПЛАН ИЗМЕНЕНИЙ</p>
-              <h2>Ваш сценарий</h2>
-              <p>Пять мероприятий. Выбор района и порядка — за вами.</p>
-            </div>
-            <div className="budget-summary">
-              <Wallet size={23} />
-              <div>
-                <span>Доступный бюджет</span>
-                <strong className="budget-value">
-                  {simulation.budget.remaining}
-                  <small> / 100</small>
-                </strong>
-              </div>
-              <div className="budget-meter" aria-hidden="true">
-                <i style={{ height: `${simulation.budget.remaining}%` }} />
-              </div>
-            </div>
-          </div>
+        <div id="workspace-city" hidden={screen !== "city"}>
+          <MapStudio selected={selected} onSelect={selectDistrict} focused={focused} onUnfocus={() => setFocused(null)} decisions={decisions} baseline={simulation} playground={playground} onCatalog={() => openCatalog()}>
+            <div className="plan-budget"><span>Осталось в бюджете</span><strong className="budget-value">{playground.simulation.budget.remaining}<small> / 100</small></strong><div className="plan-budget-track"><i style={{width:playground.simulation.budget.remaining + "%"}}/></div><small>Мероприятия: {simulation.budget.spent} · Резерв событий: {playground.emergency_reserve}</small></div>
           <div className="direction-strip" aria-label="Пять направлений">
             {dataset.directions.map((d) => {
               const Icon = categoryIcons[d.id];
@@ -359,7 +189,7 @@ export default function CityWorkspace() {
               );
             })}
           </div>
-          <div className="scenario-layout">
+
             <ol className="decisions-timeline">
               {Array.from({ length: 5 }, (_, i) => {
                 const d = decisions[i];
@@ -454,52 +284,14 @@ export default function CityWorkspace() {
                 );
               })}
             </ol>
-            <aside className="scenario-summary">
-              <p className="section-kicker">СБАЛАНСИРОВАННЫЙ ПОДХОД</p>
-              <h3>
-                Каждое решение
-                <br />
-                влияет на город.
-              </h3>
-              <p>
-                Учитывайте не только общий рост, но и состояние районов, которым
-                нужна поддержка.
-              </p>
-              <div>
-                <span>Выбрано мероприятий</span>
-                <strong className="decision-count">
-                  {decisions.length} / 5
-                </strong>
-              </div>
-              <div>
-                <span>Потрачено</span>
-                <strong>{simulation.budget.spent} ед.</strong>
-              </div>
-              <button
-                className="primary-button"
-                disabled={!scenario.valid}
-                onClick={evaluate}
-              >
-                Рассчитать сценарий <ArrowRight size={17} />
-              </button>
-              <p className="small-muted">
-                {scenario.valid
-                  ? "Получите Score и AI-анализ сильных сторон, рисков и последствий."
-                  : "Для расчёта нужны пять допустимых мероприятий. Не более двух одного направления."}
-              </p>
-              {decisions.length ? (
-                <button className="text-button" onClick={() => replace([])}>
-                  Очистить сценарий
-                </button>
-              ) : null}
-            </aside>
-          </div>
-          <p role="status" className="inline-status">
-            {scenario.notice || notice}
-          </p>
-        </section>
+
+            <div className="plan-actions"><button className="primary-button" disabled={!scenario.valid} onClick={evaluate}>Рассчитать сценарий <ArrowRight size={16}/></button><p>Ровно 5 мер · до 2 одного направления</p>{decisions.length ? <button className="text-button" onClick={() => replace([])}>Очистить сценарий</button> : null}</div>
+            <p role="status" className="inline-status">{scenario.notice || notice}</p>
+          </MapStudio>
+        </div>
         <section
           id="analysis"
+          hidden={screen !== "analysis"}
           ref={analysis}
           className="analysis-section section-width"
         >
@@ -512,6 +304,7 @@ export default function CityWorkspace() {
               </p>
             </div>
           </div>
+          {playground.events.length ? <p className="notice">Ниже — основной план для честного сравнения. Учебные события карты в этот отчёт и рейтинг не входят.</p> : null}
           <div
             className="analysis-tabs"
             role="tablist"
@@ -638,7 +431,7 @@ export default function CityWorkspace() {
                     Выберите пять мероприятий, чтобы рассчитать итоговую оценку
                     и получить AI-анализ.
                   </p>
-                  <a href="#scenario" className="secondary-button">
+                  <a href="#scenario" onClick={() => setScreen("city")} className="secondary-button">
                     К выбору мероприятий <ArrowUpRight size={16} />
                   </a>
                 </div>
@@ -650,7 +443,7 @@ export default function CityWorkspace() {
                 decisions={decisions}
                 valid={scenario.valid}
                 onApply={(next) => {
-                  replace(next);
+                  if (!replace(next)) return;
                   setNotice(
                     "Рекомендация применена. Показатели пересчитаны, прежний AI-отчёт сброшен.",
                   );
@@ -674,9 +467,9 @@ export default function CityWorkspace() {
           </div>
           <div className="footer-column">
             <strong>Симулятор</strong>
-            <a href="#city">Карта районов</a>
-            <a href="#scenario">Мой сценарий</a>
-            <a href="#analysis">Анализ и сравнение</a>
+            <a href="#city" onClick={() => setScreen("city")}>Карта районов</a>
+            <a href="#scenario" onClick={() => setScreen("city")}>Мой сценарий</a>
+            <a href="#analysis" onClick={() => setScreen("analysis")}>Анализ и сравнение</a>
           </div>
           <div className="footer-column">
             <strong>О проекте</strong>
@@ -706,7 +499,7 @@ export default function CityWorkspace() {
             </p>
             <h2>{editing ? "Заменить мероприятие" : "Выберите мероприятие"}</h2>
             <p>
-              Осталось {simulation.budget.remaining} ед. · {decisions.length} из
+              Осталось {playground.simulation.budget.remaining} ед. · {decisions.length} из
               5 выбрано
             </p>
           </div>
@@ -781,7 +574,7 @@ export default function CityWorkspace() {
                     district_id: m.scope === "city" ? null : selected,
                   },
                 ];
-            const validation = validateSelections(dataset, next, {
+            const validation = validateSelections(planningDataset, next, {
               draft: true,
             });
             const reason = !validation.valid

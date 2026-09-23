@@ -106,6 +106,49 @@ async function openAll(page: Page) {
     .click();
 }
 
+test("drag events affect their target, removal refunds reserve, and repair animates tradeoffs", async ({ page }) => {
+  await page.setViewportSize({ width: 1560, height: 1100 });
+  await page.goto("/");
+  const rain = page.getByRole("button", { name: "Событие: Сильные осадки", exact: true });
+  await rain.dragTo(page.getByRole("button", { name: "Район Нура", exact: true }));
+  await expect(page.getByRole("list", { name: "Активные события" })).toContainText("Нура");
+  await expect(page.locator('[data-indicator="T1"] strong')).toHaveText("51-4");
+  await expect(page.locator(".rain-streak")).toHaveCount(18);
+  await expect(page.locator(".budget-value")).toHaveText("90 / 100");
+  await page.getByRole("button", { name: "Убрать событие 1", exact: true }).click();
+  await expect(page.locator('[data-indicator="T1"] strong')).toHaveText("55—");
+  await expect(page.locator(".budget-value")).toHaveText("100 / 100");
+  await page.getByRole("button", { name: "Событие: Ремонт улиц", exact: true }).dragTo(page.locator(".city-drop-target"));
+  await expect(page.getByRole("list", { name: "Активные события" })).toContainText("Весь город");
+  await expect(page.locator(".zone-feedback.mixed")).toHaveCount(5);
+  await expect(page.locator('[data-indicator="B2"] strong')).toHaveText("55+5");
+  await page.getByRole("tab", { name: "Аналитика и сравнение", exact: true }).click();
+  await expect(page.locator(".planning-studio")).not.toBeVisible();
+  await expect(page.getByRole("tab", { name: "Сравнение", exact: true })).toBeVisible();
+});
+
+test("touch-friendly event placement respects budget and reduced motion", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await example(page);
+  await page.getByRole("button", { name: "Событие: Сильные осадки", exact: true }).click();
+  await page.getByRole("button", { name: "Район Нура", exact: true }).click();
+  await expect(page.getByRole("list", { name: "Активные события" })).toHaveCount(0);
+  await expect(page.locator(".studio-status")).toContainText("Освободите бюджет");
+  await expect(page.locator(".budget-value")).toHaveText("5 / 100");
+  await page.getByRole("button", { name: "Очистить сценарий", exact: true }).click();
+  await page.getByRole("button", { name: "Событие: Жара", exact: true }).click();
+  await page.getByRole("button", { name: "Район Нура", exact: true }).click();
+  await expect(page.locator('[data-indicator="E1"] strong')).toHaveText("41-4");
+  await page.getByRole("button", { name: "Район Нура", exact: true }).click();
+  await expect(page.locator(".city-scene")).toHaveAttribute("data-focused", "nura");
+  await expect(page.locator(".city-scene")).toHaveAttribute("data-moving", "false");
+  await expect(page.locator(".map-feedback")).not.toBeVisible();
+  await page.getByRole("button", { name: "Весь город", exact: true }).click();
+  await expect(page.locator(".city-scene")).toHaveAttribute("data-focused", "city");
+});
+
 for (const width of [1440, 390]) {
   test(`empty scenario plus opens the catalog and supports keyboard (${width}px)`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -136,10 +179,16 @@ test("map stays still after click or drag release, including outside its bounds"
   await page.getByRole("button", { name: "Район Есиль", exact: true }).click();
   await page.mouse.move(400, 600);
   await page.mouse.move(600, 670, { steps: 6 });
-  await expect(map).toHaveAttribute("viewBox", original!);
+  await expect(map).toHaveAttribute("data-focused", "esil");
+  await expect(map).toHaveAttribute("data-moving", "false");
+  const focused = await map.getAttribute("viewBox");
+  expect(focused).not.toBe(original);
+  await page.mouse.move(500, 620);
+  await expect(map).toHaveAttribute("viewBox", focused!);
   await page
     .getByRole("button", { name: "Увеличить карту", exact: true })
     .click();
+  await expect(map).toHaveAttribute("data-moving", "false");
   const zoomed = await map.getAttribute("viewBox");
   expect(zoomed).not.toBe(original);
   const box = (await map.boundingBox())!;
@@ -179,8 +228,7 @@ test("five directions, district metrics, selection and constraints are accessibl
     page.getByRole("heading", { name: "Нура", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".direction-strip button")).toHaveCount(5);
-  await expect(page.locator(".metric-list")).not.toBeVisible();
-  await page.getByText("Показатели района", { exact: true }).click();
+  await expect(page.locator(".metric-list")).toBeVisible();
   await expect(page.locator(".metric-row")).toHaveCount(10);
   await openAll(page);
   await expect(page.locator("dialog[open] .measure-card")).toHaveCount(14);
@@ -220,7 +268,7 @@ test("mobile layout works without overflow and supports keyboard district select
   await page.getByRole("button", { name: "Район Алматы", exact: true }).focus();
   await page.keyboard.press("Enter");
   await expect(
-    page.getByRole("heading", { name: "Алматы", exact: true }),
+    page.locator(".district-inspector").getByRole("heading", { name: "Алматы", exact: true }),
   ).toBeVisible();
   await openAll(page);
   await page.getByRole("button", { name: "Добавить M9", exact: true }).click();
@@ -248,6 +296,7 @@ test("reference Score, unavailable AI and persisted edits retain authoritative r
   await expect(page.locator(".result-breakdown")).toContainText(
     "Критических значений0",
   );
+  await page.getByRole("tab", { name: "Карта и решения", exact: true }).click();
   await page.getByRole("button", { name: "Удалить M8", exact: true }).click();
   await expect(page.locator(".result-score")).toHaveCount(0);
   await page.reload();
@@ -319,6 +368,7 @@ test("recommendations use the backend contract and applying one invalidates old 
     .getByRole("button", { name: "Рассчитать сценарий", exact: true })
     .click();
   await expect(page.locator(".report-message")).toBeVisible();
+  await page.getByRole("tab", { name: "Аналитика и сравнение", exact: true }).click();
   await page.getByRole("tab", { name: "Рекомендации", exact: true }).click();
   await page
     .getByRole("button", { name: "Найти улучшения", exact: true })
@@ -341,6 +391,7 @@ test("recommendations use the backend contract and applying one invalidates old 
   ).toBeVisible();
   const displayed = await page.locator(".result-score strong").innerText();
   await page.reload();
+  await page.getByRole("tab", { name: "Аналитика и сравнение", exact: true }).click();
   await expect(page.locator(".result-score strong")).toHaveText(displayed);
 });
 
@@ -378,12 +429,15 @@ test("stale recommendation responses cannot overwrite an edited scenario", async
   });
   await page.goto("/");
   await example(page);
+  await page.getByRole("tab", { name: "Аналитика и сравнение", exact: true }).click();
   await page.getByRole("tab", { name: "Рекомендации", exact: true }).click();
   await page
     .getByRole("button", { name: "Найти улучшения", exact: true })
     .click();
+  await page.getByRole("tab", { name: "Карта и решения", exact: true }).click();
   await page.getByRole("button", { name: "Удалить M8", exact: true }).click();
   release();
+  await page.getByRole("tab", { name: "Аналитика и сравнение", exact: true }).click();
   await expect(page.locator(".alternative")).toHaveCount(0);
   await expect(page.getByRole("tabpanel")).toContainText(
     "сначала выберите пять",
@@ -396,6 +450,7 @@ test("event reserve blocks invalid Score, allows redistribution and preserves ba
 }) => {
   await page.goto("/");
   await example(page);
+  await page.getByRole("tab", { name: "Аналитика и сравнение", exact: true }).click();
   await page.getByRole("tab", { name: "События", exact: true }).click();
   await page.getByRole("button", { name: /Сильные осадки/ }).click();
   await expect(
@@ -430,6 +485,7 @@ test("presentation remains useful without AI and downloads real calculated conte
 }) => {
   await page.goto("/");
   await example(page);
+  await page.getByRole("tab", { name: "Аналитика и сравнение", exact: true }).click();
   await page.getByRole("tab", { name: "Презентация", exact: true }).click();
   await page
     .getByLabel("Заголовок презентации")
@@ -494,6 +550,7 @@ test("complete presentation includes AI explanation slides and evidence", async 
   });
   await page.goto("/");
   await example(page);
+  await page.getByRole("tab", { name: "Аналитика и сравнение", exact: true }).click();
   await page.getByRole("tab", { name: "Презентация", exact: true }).click();
   await page
     .getByRole("button", { name: "Сформировать презентацию", exact: true })
@@ -514,6 +571,7 @@ test("comparison reports unavailable storage without inventing an empty ranking"
 }) => {
   await page.goto("/");
   await example(page);
+  await page.getByRole("tab", { name: "Аналитика и сравнение", exact: true }).click();
   await page.getByRole("tab", { name: "Сравнение", exact: true }).click();
   await expect(
     page.locator(".analysis-panel").getByRole("alert"),
@@ -583,6 +641,7 @@ test("comparison publishes only on explicit action, highlights own best and show
   });
   await page.goto("/");
   await example(page);
+  await page.getByRole("tab", { name: "Аналитика и сравнение", exact: true }).click();
   await page.getByRole("tab", { name: "Сравнение", exact: true }).click();
   await expect(page.locator(".leaderboard tbody tr")).toHaveCount(1);
   expect(calls).toBe(0);
