@@ -1,0 +1,10 @@
+# Upload source only. Credentials are configured as server-side Vercel variables.
+.env*
+.git
+.next
+node_modules
+test-results
+playwright-report
+coverage
+docs
+*.tsbuildinfo
