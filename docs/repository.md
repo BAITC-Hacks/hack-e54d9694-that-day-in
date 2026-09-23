@@ -18,7 +18,7 @@
 | :--- | :--- | :--- |
 | [`main`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/main) | Основная версия проекта | Приложение, датасет, тесты и документация; ветка для запуска и новых PR |
 | [`codex/ui`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/ui) | Интерфейс и сборка этапов разработки | Проверенная интеграция объединена в `main` через PR #3; ветка сохранена |
-| [`codex/map-studio`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/map-studio) | Фокус района, панели и события на карте | Проверенная реализация `ebb5dc2` и журнал публикации включены в `main` через PR #7; ветка сохранена |
+| [`codex/map-studio`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/map-studio) | Фокус района, панели и события на карте | Карта включена в `main` через PR #7. Дополнительное оформление из `4db0faa` находится в PR #8 и пока не включено в `main` |
 | [`codex/deploy`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/deploy) | Подготовка публикации и проверка Vercel/Redis | Предыдущая публикация `5f478f0` и отчёт `934a40b` включены в `main`; актуальный deployment описан в журнале |
 | [`codex/scenario-features`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/scenario-features) | Backend рейтинга, рекомендаций, событий и презентации | Изменения до `7ce23ac` включены в `main` |
 | [`codex/resident-feedback`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/resident-feedback) | Экспериментальная проекция состояния по отзывам | Изменения до `32a4946` включены в `main`; API сохранён, отдельного экрана пока нет |
@@ -31,6 +31,7 @@
 
 | PR | Назначение | Как читать |
 | :--- | :--- | :--- |
+| [#8 · оформление интерфейса](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/pull/8) | `codex/map-studio` → `main` | Открыт: типографика, навигация и оформление презентации; следующие изменения после PR #7 |
 | [#7 · карта и события](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/pull/7) | `codex/map-studio` → `main` | Новая карта, события и актуальный журнал публикации объединены в `main` |
 | [#3 · приложение](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/pull/3) | `codex/ui` → `main` | Приложение объединено в `main`; история основной интеграции |
 | [#6 · публикация](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/pull/6) | `codex/deploy` → `codex/scenario-features` | История публикации и исправления «+»; эти commits уже включены в `main` |
