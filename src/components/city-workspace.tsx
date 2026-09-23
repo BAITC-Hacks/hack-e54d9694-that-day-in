@@ -28,6 +28,8 @@ import {
 import { dataset } from "@/data";
 import { validateSelections } from "@/lib/simulation";
 import { useScenario } from "@/features/simulator/use-scenario";
+import { useReport } from "@/features/simulator/use-report";
+import ReportExplanation from "./report-explanation";
 import CityMap from "./city-map";
 import type { Direction } from "@/shared/contracts";
 
@@ -64,6 +66,7 @@ export default function CityWorkspace() {
   const [direction, setDirection] = useState<DirectionId | "all">("all");
   const [forecast, setForecast] = useState(false);
   const scenario = useScenario();
+  const report = useReport();
   const { simulation, decisions } = scenario;
   const summary = forecast ? simulation.after : simulation.before;
   const resultDialog = useRef<HTMLDialogElement>(null);
@@ -229,7 +232,10 @@ export default function CityWorkspace() {
               <button
                 className="analysis-button"
                 disabled={!scenario.valid}
-                onClick={() => resultDialog.current?.showModal()}
+                onClick={() => {
+                  resultDialog.current?.showModal();
+                  void report.run(decisions);
+                }}
               >
                 <Sparkles size={16} /> Оценить сценарий <ArrowRight size={17} />
               </button>
@@ -703,9 +709,14 @@ export default function CityWorkspace() {
           Числа рассчитаны общим модулем по правилам GitHub-датасета.
         </div>
         <p className="small-muted">
-          Локальный расчёт готов. Серверная проверка и AI-объяснение
-          подключаются следующим этапом. AI не изменяет Score.
+          AI объясняет сценарий и не изменяет Score.
         </p>
+        <ReportExplanation
+          report={report}
+          onRetry={() => {
+            void report.run(decisions);
+          }}
+        />
       </dialog>
     </div>
   );

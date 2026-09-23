@@ -1720,3 +1720,96 @@ dialog::backdrop {
     font-size: 7px;
   }
 }
+
+.report-explanation {
+  border-top: 1px solid #e2e9d9;
+  margin-top: 18px;
+  padding-top: 18px;
+}
+.report-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #5f8250;
+}
+.report-message {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #9c7d49;
+  padding: 13px;
+  background: #f6f1e6;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+.report-explanation h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  margin: 22px 0 13px;
+}
+.analysis-summary {
+  font-size: 12px;
+  line-height: 1.9;
+  color: #667b5b;
+}
+.explanation-group {
+  margin-top: 20px;
+}
+.explanation-group h4 {
+  font-size: 12px;
+  font-weight: 750;
+  margin: 0 0 8px;
+  color: #426b39;
+}
+.explanation-group.risks h4 {
+  color: #b28542;
+}
+.explanation-group ul {
+  margin: 0;
+  padding-left: 17px;
+}
+.explanation-group li {
+  font-size: 12px;
+  line-height: 1.8;
+  margin-bottom: 12px;
+  color: #748369;
+}
+.explanation-group details {
+  font-size: 10px;
+  color: #8d9c80;
+  margin-top: 5px;
+}
+.explanation-group summary {
+  cursor: pointer;
+  color: #76965f;
+}
+.evidence-fact {
+  display: flex;
+  flex-direction: column;
+  background: #f0f5e8;
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-top: 6px;
+}
+.report-provenance {
+  font-size: 8px;
+  color: #9ba58f;
+  margin-top: 18px;
+  overflow-wrap: anywhere;
+}
+.loading-icon {
+  animation: spin 1.4s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-icon {
+    animation: none;
+  }
+}
