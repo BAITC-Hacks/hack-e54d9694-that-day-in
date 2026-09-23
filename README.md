@@ -1,3 +1,21 @@
+<!-- akim-branch-context -->
+# Ветка этапа: `codex/scenario-features`
+
+> [!NOTE]
+> **Актуальное приложение и полный README находятся в [main](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/main#readme).**
+> Для запуска, проверки жюри и новых задач используйте основную ветку `main`.
+
+**Назначение этой ветки:** Серверная логика рейтинга, рекомендаций, городских событий и презентации.
+
+Код этапа ([`7ce23ac`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/7ce23ac0f3b7bf77de70acf12ec7d3700ac60043)) включён в `main` через [PR #3](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/pull/3). Ветка сохранена с прежним именем и историей; эта пометка меняет только README. Старый текст ниже описывает состояние проекта на момент этого этапа и может содержать неактуальные инструкции.
+
+[Открыть демо](https://akim-five-hours.vercel.app) · [Актуальный запуск](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/blob/main/README.md#быстрый-запуск) · [Карта всех веток](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/blob/main/docs/repository.md)
+
+---
+
+<details>
+<summary>README этого этапа — сохранён для истории</summary>
+
 # Аким на 5 часов
 
 Учебный симулятор управления Астаной: пять решений, бюджет 100 единиц и оценка последствий для пяти районов.
@@ -71,3 +89,6 @@ Unit/API-тесты проверяют исходные данные, огран
 ## Публикация
 
 Проект подготовлен для Vercel: framework Next.js, Node.js 22, install `npm ci`, build `npm run build`. Секреты задаются в настройках окружения платформы. Публичная ссылка будет добавлена после успешного деплоя.
+
+
+</details>
