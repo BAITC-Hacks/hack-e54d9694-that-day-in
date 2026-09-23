@@ -18,6 +18,7 @@
 | :--- | :--- | :--- |
 | [`main`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/main) | Основная версия проекта | Приложение, датасет, тесты и документация; ветка для запуска и новых PR |
 | [`codex/ui`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/ui) | Интерфейс и сборка этапов разработки | Проверенная интеграция объединена в `main` через PR #3; ветка сохранена |
+| [`codex/map-studio`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/map-studio) | Активная разработка нового интерфейса карты | Новые изменения после основной интеграции; в `main` пока не включены. Это рабочая, а не историческая ветка |
 | [`codex/deploy`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/deploy) | Подготовка публикации и проверка Vercel/Redis | Последняя зафиксированная сборка приложения — `5f478f0`; отчёт — `934a40b`; включены в `main` |
 | [`codex/scenario-features`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/scenario-features) | Backend рейтинга, рекомендаций, событий и презентации | Изменения до `7ce23ac` включены в `main` |
 | [`codex/resident-feedback`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/resident-feedback) | Экспериментальная проекция состояния по отзывам | Изменения до `32a4946` включены в `main`; API сохранён, отдельного экрана пока нет |
