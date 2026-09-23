@@ -78,8 +78,11 @@ export class RedisLeaderboardStore implements LeaderboardStore {
 }
 
 export function configuredLeaderboardStore(): LeaderboardStore {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  // Vercel Marketplace provisions KV_* names; direct Upstash uses UPSTASH_*.
+  // Choose an entire pair to avoid mixing credentials from different databases.
+  const direct = process.env.UPSTASH_REDIS_REST_URL || process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url = direct ? process.env.UPSTASH_REDIS_REST_URL : process.env.KV_REST_API_URL;
+  const token = direct ? process.env.UPSTASH_REDIS_REST_TOKEN : process.env.KV_REST_API_TOKEN;
   if (!url || !token) throw new Error("Leaderboard storage not configured");
   return new RedisLeaderboardStore(url, token);
 }

@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { participantIdentity } from "../../src/lib/competition/identity";
-import { RedisLeaderboardStore } from "../../src/lib/competition/store";
+import { configuredLeaderboardStore, RedisLeaderboardStore } from "../../src/lib/competition/store";
 import { rankEntries } from "../../src/lib/simulation/leaderboard";
 import { fixtureLeaderboard } from "../../src/shared/features-fixtures";
 
@@ -27,6 +27,16 @@ describe("participant identity and ranking", () => {
 });
 
 describe("Redis REST adapter without real credentials", () => {
+  afterEach(() => vi.unstubAllEnvs());
+  it("supports Marketplace credentials and never mixes credential pairs", () => {
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
+    vi.stubEnv("KV_REST_API_URL", "https://redis.example.test");
+    vi.stubEnv("KV_REST_API_TOKEN", "test-token");
+    expect(configuredLeaderboardStore()).toBeInstanceOf(RedisLeaderboardStore);
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://other.example.test");
+    expect(() => configuredLeaderboardStore()).toThrow();
+  });
   it("atomically publishes using server-side Lua and version-scoped keys", async () => {
     const row = fixtureLeaderboard.entries[0];
     const entry = { participant_id: row.participant_id, display_name: row.display_name, scenario: row.scenario, submitted_at: row.submitted_at };

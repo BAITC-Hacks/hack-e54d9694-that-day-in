@@ -1,6 +1,9 @@
 # Upload source only. Credentials are configured as server-side Vercel variables.
 .env*
 .git
+.vercel
+.agents
+skills-lock.json
 .next
 node_modules
 test-results
