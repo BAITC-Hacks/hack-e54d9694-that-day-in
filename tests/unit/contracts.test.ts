@@ -1,31 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { AiAssessmentSchema, DraftSelectionsSchema, EvaluateRequestSchema, EvaluationSchema } from "../../src/shared/contracts";
-import { fixtureCatalog, fixtureCompleteEvaluation, fixtureDraftSelections, fixtureEvaluateRequest, fixtureUnavailableEvaluation } from "../../src/shared/fixtures";
+import { AiAnalysisSchema, AnalysisResponseSchema, DraftSelectionsSchema, SimulateRequestSchema } from "../../src/shared/contracts";
+import { fixtureCompleteAnalysis, fixtureDraftSelections, fixtureSimulateRequest, fixtureSimulation, fixtureUnavailableAnalysis } from "../../src/shared/fixtures";
+import { dataset } from "../../src/data";
+import { simulateScenario } from "../../src/lib/simulation";
 
-describe("public contract fixtures", () => {
-  it("distinguishes draft, final request and non-production fixture versions", () => {
+describe("current fixtures and contracts", () => {
+  it("supports empty drafts but requires five complete decisions for final requests", () => {
     expect(DraftSelectionsSchema.safeParse(fixtureDraftSelections).success).toBe(true);
-    expect(EvaluateRequestSchema.safeParse({ ...fixtureEvaluateRequest, selections: fixtureDraftSelections }).success).toBe(false);
-    expect(fixtureCatalog.datasetVersion).toContain("fixture");
-    expect(fixtureCompleteEvaluation.model).toBe("fixture-no-ai-call");
+    expect(SimulateRequestSchema.safeParse({ ...fixtureSimulateRequest, decisions: [] }).success).toBe(false);
   });
-  it("provides coherent 60-unit fixture and 80/20 score", () => {
-    const report = fixtureCompleteEvaluation;
-    expect(EvaluationSchema.safeParse(report).success).toBe(true);
-    expect(report.simulation.budget).toEqual({ initial: 100, spent: 60, remaining: 40 });
-    expect(report.simulation.dataScore).toEqual({ before: 50, after: 52 });
-    expect(report.finalScore).toBe(57.6);
-    expect(report.aiPoints).toBe(16);
+  it("matches the calculated source example including all contributions", () => {
+    expect(fixtureSimulation.simulation).toEqual(simulateScenario(dataset, fixtureSimulateRequest.decisions));
+    expect(fixtureSimulation.simulation.after.score).toBe(56.54307);
   });
-  it("requires absent AI scores on unavailable reports", () => {
-    expect(EvaluationSchema.safeParse(fixtureUnavailableEvaluation).success).toBe(true);
-    expect(EvaluationSchema.safeParse({ ...fixtureUnavailableEvaluation, finalScore: 0 }).success).toBe(false);
-    expect(EvaluationSchema.safeParse({ ...fixtureUnavailableEvaluation, aiAssessment: fixtureCompleteEvaluation.aiAssessment }).success).toBe(false);
+  it("retains the calculated score when AI is unavailable", () => {
+    expect(AnalysisResponseSchema.safeParse(fixtureUnavailableAnalysis).success).toBe(true);
+    expect(fixtureUnavailableAnalysis.simulation.after.score).toBe(56.54307);
+    expect(fixtureUnavailableAnalysis.analysis).toBeNull();
   });
-  it("rejects client prices and AI scores outside the rubric", () => {
-    expect(EvaluateRequestSchema.safeParse({ ...fixtureEvaluateRequest, cost: 1 }).success).toBe(false);
-    const assessment = structuredClone(fixtureCompleteEvaluation.aiAssessment!);
-    assessment.criteria.needs.score = 5.5;
-    expect(AiAssessmentSchema.safeParse(assessment).success).toBe(false);
+  it("does not accept old score fields or client-supplied effects", () => {
+    expect(AiAnalysisSchema.safeParse({ ...fixtureCompleteAnalysis.analysis, aiPoints: 20 }).success).toBe(false);
+    expect(AnalysisResponseSchema.safeParse({ ...fixtureCompleteAnalysis, finalScore: 99 }).success).toBe(false);
+    expect(SimulateRequestSchema.safeParse({ ...fixtureSimulateRequest, effects: {} }).success).toBe(false);
+    expect(fixtureCompleteAnalysis.model).toBe("fixture-no-ai-call");
   });
 });

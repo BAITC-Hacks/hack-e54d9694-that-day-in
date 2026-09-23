@@ -1,5 +1,5 @@
-import rawCatalog from "./catalog.json";
-import { CatalogSchema } from "../shared/contracts";
+import rawDataset from "../../dataset/dataset.json";
+import { DatasetSchema } from "../shared/contracts";
 
-/** Fixed synthetic catalog. Never imports UI fixtures or the legacy dataset/. */
-export const catalog = CatalogSchema.parse(rawCatalog);
+/** The sole data source; original IDs and values are preserved. */
+export const dataset = DatasetSchema.parse(rawDataset);
