@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="340" viewBox="0 0 1200 340" role="img" aria-labelledby="title desc">
+  <title id="title">Аким на 5 часов</title>
+  <desc id="desc">Синяя обложка с золотым шаныраком и силуэтами Байтерека и Хан Шатыра. Решения сегодня. Астана завтра.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#152b47"/><stop offset="1" stop-color="#2d527c"/></linearGradient>
+    <linearGradient id="river" x2="1" y2="0"><stop stop-color="#729ab4" stop-opacity=".1"/><stop offset="1" stop-color="#acc9db" stop-opacity=".4"/></linearGradient>
+    <pattern id="ornament" width="48" height="32" patternUnits="userSpaceOnUse"><path d="M0 16h48M24 16c-18-18-18 18 0 0s18 18 0 0 18-18 0 0-18-18 0 0" fill="none" stroke="#d2b577" stroke-width="1.2"/></pattern>
+  </defs>
+  <rect width="1200" height="340" rx="20" fill="url(#bg)"/>
+  <circle cx="1180" cy="12" r="254" fill="none" stroke="#b3c9df" stroke-opacity=".07" stroke-width="32"/>
+  <circle cx="1180" cy="12" r="178" fill="none" stroke="#b3c9df" stroke-opacity=".07" stroke-width="2"/>
+  <g transform="translate(66 63)" stroke="#d2b577" fill="none" stroke-width="1.8">
+    <circle r="24"/><circle r="18"/><path d="M-24 0h48M0-24v48M-17-17l34 34M-17 17l34-34M-18 0Q0-30 18 0Q0 30-18 0M0-18Q-30 0 0 18Q30 0 0-18"/>
+  </g>
+  <text x="108" y="69" font-family="Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="3" fill="#dfc794">THAT DAY IN / ASTANA</text>
+  <text x="42" y="156" font-family="Arial, sans-serif" font-size="60" font-weight="700" letter-spacing="-2" fill="#ffffff">Аким на 5 часов</text>
+  <text x="44" y="204" font-family="Arial, sans-serif" font-size="25" fill="#c1d2e4">Решения сегодня. Астана завтра.</text>
+  <rect x="44" y="241" width="252" height="36" rx="18" fill="#ffffff" fill-opacity=".08" stroke="#b1c7df" stroke-opacity=".2"/>
+  <text x="61" y="264" font-family="Arial, sans-serif" font-size="13" letter-spacing="1" fill="#f0e2c2">100 БЮДЖЕТ · 5 НАПРАВЛЕНИЙ</text>
+  <path d="M677 281c85-60 116 54 204 13s183-42 319-2v48H677Z" fill="url(#river)"/>
+  <g fill="#7695b4" opacity=".3"><path d="M711 210h30v69h-30zM747 192h36v92h-36zM792 227h22v62h-22zM993 202h33v88h-33zM1031 180h24v113h-24zM1064 221h42v71h-42zM1119 201h25v92h-25z"/></g>
+  <g transform="translate(894 115)">
+    <path d="M-26 162Q-9 138-7 44H7Q9 138 26 162Z" fill="#b3c9da"/>
+    <path d="M-16 162Q-4 108-7 44M0 160V46M16 162Q4 108 7 44" fill="none" stroke="#f1ede1" stroke-width="2"/>
+    <ellipse cy="166" rx="43" ry="9" fill="#547394"/>
+    <circle cy="28" r="25" fill="#d2b577"/><path d="M-16 26a17 17 0 0 1 25-13" fill="none" stroke="#f7e8bb" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(785 283)">
+    <path d="M-72 0 15-127 57 0Z" fill="#b9cbd3"/><path d="M-72 0 15-127-9 0Z" fill="#e0e2d8"/>
+    <path d="M15-146v19M15-127-38 0M15-127 20 0" stroke="#d2b577" fill="none" stroke-width="1.5"/>
+    <ellipse rx="71" ry="7" fill="#4b6d8d"/>
+  </g>
+  <rect x="44" y="304" width="564" height="16" fill="url(#ornament)" opacity=".65"/>
+</svg>
