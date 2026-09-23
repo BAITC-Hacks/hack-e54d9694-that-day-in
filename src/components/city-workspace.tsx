@@ -376,9 +376,21 @@ export default function CityWorkspace() {
                     </span>
                     <span className="timeline-dot" />
                     <div className="decision-card">
-                      <span className="decision-visual">
-                        <Icon size={27} />
-                      </span>
+                      {measure ? (
+                        <span className="decision-visual" aria-hidden="true">
+                          <Icon size={27} />
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="decision-visual"
+                          aria-label={`Добавить мероприятие в слот ${i + 1}`}
+                          disabled={!scenario.loaded}
+                          onClick={() => openCatalog()}
+                        >
+                          <Plus size={27} aria-hidden="true" />
+                        </button>
+                      )}
                       {measure && d ? (
                         <>
                           <div className="decision-copy">

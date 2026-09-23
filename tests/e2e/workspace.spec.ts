@@ -106,6 +106,25 @@ async function openAll(page: Page) {
     .click();
 }
 
+for (const width of [1440, 390]) {
+  test(`empty scenario plus opens the catalog and supports keyboard (${width}px)`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    const first = page.locator(".decisions-timeline li").first();
+    await first.locator(".decision-visual svg").click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.getByRole("button", { name: "Добавить M9", exact: true }).click();
+    await expect(first).toHaveClass("filled");
+    await expect(page.getByRole("button", { name: "Удалить M9", exact: true })).toBeVisible();
+    const next = page.getByRole("button", { name: "Добавить мероприятие в слот 2", exact: true });
+    await next.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Добавить M9", exact: true })).toBeDisabled();
+    await page.keyboard.press("Escape");
+  });
+}
+
 test("map stays still after click or drag release, including outside its bounds", async ({
   page,
 }) => {
