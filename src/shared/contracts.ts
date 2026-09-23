@@ -1,120 +1,142 @@
 import { z } from "zod";
 
-/** Public, browser-safe contract. No server or OpenAI imports. */
-export const DIRECTIONS = ["transport", "greenery", "social", "safety", "services"] as const;
+// Browser-safe contracts. JSON field names and source identifiers are preserved.
+export const DIRECTIONS = ["transport", "ecology", "social", "safety", "services"] as const;
+export const INDICATOR_CODES = ["T1", "T2", "E1", "E2", "S1", "S2", "B1", "B2", "C1", "C2"] as const;
 export const DirectionSchema = z.enum(DIRECTIONS);
 export type Direction = z.infer<typeof DirectionSchema>;
-const finite = () => z.number().finite();
-const score = () => finite().min(0).max(100);
+export const IndicatorCodeSchema = z.enum(INDICATOR_CODES);
+export type IndicatorCode = z.infer<typeof IndicatorCodeSchema>;
 const text = () => z.string().min(1);
-const id = () => z.string().regex(/^[a-z][a-z0-9-]*$/);
-
-/** Signed deltas use Metrics; bounded indicator values use MetricValuesSchema. */
+const number = () => z.number().finite();
+const indicator = () => number().min(0).max(100);
 export const MetricsSchema = z.object({
-  transport: finite(), greenery: finite(), social: finite(), safety: finite(), services: finite(),
+  T1: number(), T2: number(), E1: number(), E2: number(), S1: number(), S2: number(),
+  B1: number(), B2: number(), C1: number(), C2: number(),
 }).strict();
 export type Metrics = z.infer<typeof MetricsSchema>;
-export const MetricValuesSchema = z.object({
-  transport: score(), greenery: score(), social: score(), safety: score(), services: score(),
+export const IndicatorValuesSchema = z.object({
+  T1: indicator(), T2: indicator(), E1: indicator(), E2: indicator(), S1: indicator(), S2: indicator(),
+  B1: indicator(), B2: indicator(), C1: indicator(), C2: indicator(),
 }).strict();
-
+export const EffectsSchema = MetricsSchema.partial();
 export const DistrictSchema = z.object({
-  id: id(), name: text(), population: z.number().int().positive(),
-  baselineMetrics: MetricValuesSchema,
-  // SVG scene coordinates in [0, 100], not geographic coordinates.
-  mapPosition: z.object({ x: finite().min(0).max(100), y: finite().min(0).max(100) }).strict(),
-  visualVariant: z.enum(["center", "residential", "industrial", "riverside", "park", "mixed"]),
+  id: text(), name: text(), population_share: number().positive().max(1), indicators: IndicatorValuesSchema,
+  source_district_score: indicator(), computed_district_score: indicator(), profile: text(),
 }).strict();
 export type District = z.infer<typeof DistrictSchema>;
-export const ProgramSchema = z.object({
-  id: id(), direction: DirectionSchema, title: text(), description: text(),
-  cost: z.number().int().positive(),
-  effects: z.array(z.object({ districtId: id(), deltas: MetricsSchema }).strict()).min(1),
-  implementationMonths: z.number().int().min(1).max(12),
-  tradeoffs: z.array(text()).min(1), risks: z.array(text()).min(1),
+export const MeasureSchema = z.object({
+  id: text(), direction_id: DirectionSchema, name: text(), scope: z.enum(["district", "city"]),
+  cost: number().nonnegative(), lag_quarters: z.number().int().nonnegative(), effects: EffectsSchema,
 }).strict();
-export type Program = z.infer<typeof ProgramSchema>;
-export const VersionsSchema = z.object({
-  datasetVersion: text(), rulesVersion: text(), evaluationVersion: text(),
-}).strict();
-export const CatalogSchema = VersionsSchema.extend({
-  budget: z.object({ initial: z.literal(100), unit: text() }).strict(),
-  horizonMonths: z.literal(12), metricWeights: MetricsSchema,
-  districts: z.array(DistrictSchema).length(6), programs: z.array(ProgramSchema).length(15),
-}).strict().superRefine((catalog, ctx) => {
-  const fail = (message: string, path: (string | number)[]) => ctx.addIssue({ code: "custom", message, path });
-  const districtIds = new Set(catalog.districts.map((d) => d.id));
-  if (districtIds.size !== catalog.districts.length) fail("Duplicate district IDs", ["districts"]);
-  if (new Set(catalog.programs.map((p) => p.id)).size !== catalog.programs.length) fail("Duplicate program IDs", ["programs"]);
-  for (const direction of DIRECTIONS) {
-    if (catalog.metricWeights[direction] !== 0.2) fail("Each metric weight must be 0.2", ["metricWeights", direction]);
-    const programs = catalog.programs.filter((p) => p.direction === direction);
-    if (programs.map((p) => p.cost).sort((a, b) => a - b).join(",") !== "12,20,28") {
-      fail("Each direction requires exactly three programs costing 12, 20, 28", ["programs"]);
-    }
-  }
-  catalog.programs.forEach((program, index) => {
-    if (new Set(program.effects.map((e) => e.districtId)).size !== program.effects.length) fail("Duplicate effect district", ["programs", index, "effects"]);
-    program.effects.forEach((effect, effectIndex) => {
-      if (!districtIds.has(effect.districtId)) fail("Unknown effect district", ["programs", index, "effects", effectIndex, "districtId"]);
-    });
-  });
-});
-export type Catalog = z.infer<typeof CatalogSchema>;
-
-export const DraftSelectionsSchema = z.object({
-  transport: id().nullable(), greenery: id().nullable(), social: id().nullable(),
-  safety: id().nullable(), services: id().nullable(),
-}).strict();
+export type Measure = z.infer<typeof MeasureSchema>;
+export const DecisionSchema = z.object({ measure_id: text(), district_id: text().nullable() }).strict();
+export type Decision = z.infer<typeof DecisionSchema>;
+// [] is an empty draft. Up to five fully specified decisions; no obsolete direction slots.
+export const DraftSelectionsSchema = z.array(DecisionSchema).max(5);
 export type DraftSelections = z.infer<typeof DraftSelectionsSchema>;
-export const SelectionsSchema = z.object({
-  transport: id(), greenery: id(), social: id(), safety: id(), services: id(),
+export const CriticalValueSchema = z.object({ district_id: text(), indicator_code: IndicatorCodeSchema, value: number() }).strict();
+export const ScoreSummarySchema = z.object({
+  district_scores: z.record(z.string(), number()), city_average: number(), minimum_district_score: number(),
+  critical_count: z.number().int().nonnegative(), critical_values: z.array(CriticalValueSchema), score: number(),
 }).strict();
-export type Selections = z.infer<typeof SelectionsSchema>;
-export const EvaluateRequestSchema = VersionsSchema.extend({ selections: SelectionsSchema }).strict();
-export type EvaluateRequest = z.infer<typeof EvaluateRequestSchema>;
-
-export const BudgetSchema = z.object({ initial: finite().nonnegative(), spent: finite().nonnegative(), remaining: finite() }).strict();
+export type ScoreSummary = z.infer<typeof ScoreSummarySchema>;
+export const DatasetSchema = z.object({
+  schema_version: text(),
+  metadata: z.object({
+    title: text(), language: text(), source: text(), city_name: text().nullable(), cost_unit: text(),
+    indicator_scale: z.object({ min: z.literal(0), max: z.literal(100), higher_is_better: z.literal(true) }).strict(),
+    simulation_horizon_quarters: z.number().int().positive(),
+  }).strict(),
+  directions: z.array(z.object({ id: DirectionSchema, name: text() }).strict()).length(5),
+  indicators: z.array(z.object({ code: IndicatorCodeSchema, direction_id: DirectionSchema, name: text(),
+    weight: number().nonnegative().max(1), meaning_at_100: text(), meaning_at_0: text().nullable() }).strict()).length(10),
+  districts: z.array(DistrictSchema).length(5), measures: z.array(MeasureSchema).length(14),
+  synergies: z.array(z.object({ measure_ids: z.tuple([text(), text()]), target_district_of: text(),
+    effects: EffectsSchema, scale_by_lag: z.literal(false) }).strict()),
+  incompatibilities: z.array(z.object({ measure_ids: z.tuple([text(), text()]), scope: z.enum(["anywhere", "same_district"]), reason: text() }).strict()),
+  rules: z.object({
+    budget: number().nonnegative(), required_decision_count: z.literal(5), allow_repeated_measures: z.literal(false),
+    max_measures_per_direction: z.number().int().positive(), district_required_for_scope: z.literal("district"),
+    district_for_city_scope: z.null(), decision_order_matters: z.literal(false), unused_budget_bonus: z.literal(0),
+    invalid_selection_score: z.null(), invalid_selection_returns_reasons: z.literal(true),
+  }).strict(),
+  scoring: z.object({
+    effect_factor: z.literal("(H - lag_quarters) / H"),
+    indicator_formula: z.literal("clip(initial + sum(effects * effect_factor) + synergies, 0, 100)"),
+    district_formula: z.literal("sum(indicator_weight * final_indicator)"),
+    city_formula: z.literal("sum(population_share * district_score)"), score_formula: text(),
+    city_average_weight: number().nonnegative(), minimum_district_weight: number().nonnegative(),
+    critical_threshold: number(), critical_comparison: z.literal("strictly_less_than"),
+    critical_penalty_per_pair: number().nonnegative(), clip_after_all_effects: z.literal(true),
+  }).strict(),
+  baseline: ScoreSummarySchema,
+  example: z.object({ decisions: z.array(DecisionSchema).length(5), total_cost: number(), result: ScoreSummarySchema }).strict(),
+  source_claims: z.object({ baseline_city_average: number(), baseline_score: number(), example_score_approx: number(),
+    example_gain_approx: number(), cheapest_measure_set: z.array(text()), cheapest_measure_set_cost: number() }).strict(),
+  llm_role: text(),
+}).strict().superRefine((data, ctx) => {
+  const issue = (message: string) => ctx.addIssue({ code: "custom", message });
+  const unique = (ids: string[], label: string) => { if (new Set(ids).size !== ids.length) issue(`Duplicate ${label}`); };
+  unique(data.directions.map(d => d.id), "direction"); unique(data.indicators.map(i => i.code), "indicator");
+  unique(data.districts.map(d => d.id), "district"); unique(data.measures.map(m => m.id), "measure");
+  if (Math.abs(data.districts.reduce((s, d) => s + d.population_share, 0) - 1) > 1e-9) issue("Population shares must sum to 1");
+  if (Math.abs(data.indicators.reduce((s, i) => s + i.weight, 0) - 1) > 1e-9) issue("Indicator weights must sum to 1");
+  if (Math.abs(data.scoring.city_average_weight + data.scoring.minimum_district_weight - 1) > 1e-9) issue("Score weights must sum to 1");
+  for (const m of data.measures) if (m.lag_quarters > data.metadata.simulation_horizon_quarters) issue(`Lag exceeds horizon: ${m.id}`);
+  const measures = new Map(data.measures.map(m => [m.id, m]));
+  for (const rule of [...data.synergies, ...data.incompatibilities]) {
+    if (new Set(rule.measure_ids).size !== 2 || rule.measure_ids.some(id => !measures.has(id))) issue("Invalid measure pair");
+  }
+  for (const s of data.synergies) if (!s.measure_ids.includes(s.target_district_of) || measures.get(s.target_district_of)?.scope !== "district") issue("Invalid synergy target");
+  for (const r of data.incompatibilities) if (r.scope === "same_district" && r.measure_ids.some(id => measures.get(id)?.scope !== "district")) issue("Invalid district incompatibility");
+});
+export type Dataset = z.infer<typeof DatasetSchema>;
+// SHA-256 of the source JSON content (canonical object order); not schema_version alone.
+export const CatalogSchema = z.object({ dataset_version: text(), dataset: DatasetSchema }).strict();
+export type Catalog = z.infer<typeof CatalogSchema>;
+export const SimulateRequestSchema = z.object({ dataset_version: text(), decisions: z.array(DecisionSchema).length(5) }).strict();
+export type SimulateRequest = z.infer<typeof SimulateRequestSchema>;
+export const AnalyzeRequestSchema = SimulateRequestSchema;
+export type AnalyzeRequest = SimulateRequest;
+export const BudgetSchema = z.object({ initial: number(), spent: number(), remaining: number() }).strict();
 export type Budget = z.infer<typeof BudgetSchema>;
-const MetricChangeSchema = z.object({ before: MetricValuesSchema, after: MetricValuesSchema, delta: MetricsSchema }).strict();
 export const SimulationResultSchema = z.object({
   budget: BudgetSchema,
-  districts: z.array(MetricChangeSchema.extend({ districtId: id(), population: z.number().int().positive() }).strict()).length(6),
-  cityMetrics: MetricChangeSchema,
-  dataScore: z.object({ before: score(), after: score() }).strict(),
+  districts: z.array(z.object({ district_id: text(), before: IndicatorValuesSchema, after: IndicatorValuesSchema, delta: MetricsSchema }).strict()).length(5),
+  before: ScoreSummarySchema, after: ScoreSummarySchema, score_delta: number(),
+  // Contributions before final clipping; synergy bonuses are separate, not attributed twice.
+  contributions: z.array(z.object({ measure_id: text(), district_id: text(), factor: number(), deltas: MetricsSchema }).strict()),
+  applied_synergies: z.array(z.object({ measure_ids: z.tuple([text(), text()]), district_id: text(), deltas: MetricsSchema }).strict()),
 }).strict();
 export type SimulationResult = z.infer<typeof SimulationResultSchema>;
-
+export const SimulationResponseSchema = z.object({
+  dataset_version: text(), scenario_key: text(), decisions: z.array(DecisionSchema).length(5), simulation: SimulationResultSchema,
+}).strict();
+export type SimulationResponse = z.infer<typeof SimulationResponseSchema>;
 export const EvidenceFactSchema = z.object({ id: text(), label: text(), value: text() }).strict();
 export type EvidenceFact = z.infer<typeof EvidenceFactSchema>;
-export const AssessmentItemSchema = z.object({ explanation: text(), evidenceIds: z.array(text()).min(1) }).strict();
-export const CriterionSchema = AssessmentItemSchema.extend({ score: z.number().int().min(0).max(5) }).strict();
-export const AiAssessmentSchema = z.object({
-  summary: text(),
-  criteria: z.object({ needs: CriterionSchema, equity: CriterionSchema, coherence: CriterionSchema, feasibility: CriterionSchema }).strict(),
-  strengths: z.array(AssessmentItemSchema).min(2).max(3),
-  risks: z.array(AssessmentItemSchema).min(2).max(3),
-  consequences: z.array(AssessmentItemSchema).min(2).max(3),
+export const ExplanationItemSchema = z.object({ explanation: text(), evidence_ids: z.array(text()).min(1) }).strict();
+// AI only explains. No criterion scores, aiPoints, finalScore or other numerical ratings.
+export const AiAnalysisSchema = z.object({
+  summary: text(), strengths: z.array(ExplanationItemSchema).min(2).max(3),
+  risks: z.array(ExplanationItemSchema).min(2).max(3), consequences: z.array(ExplanationItemSchema).min(2).max(3),
 }).strict();
-export type AiAssessment = z.infer<typeof AiAssessmentSchema>;
+export type AiAnalysis = z.infer<typeof AiAnalysisSchema>;
 export const AiErrorSchema = z.object({
   code: z.enum(["missing_api_key", "timeout", "refusal", "invalid_response", "provider_error"]), message: text(),
 }).strict();
 export type AiError = z.infer<typeof AiErrorSchema>;
-const EvaluationBaseSchema = VersionsSchema.extend({
-  scenarioKey: text(), createdAt: z.string().datetime(), model: text(),
-  promptVersion: text(), rubricVersion: text(), selections: SelectionsSchema,
-  simulation: SimulationResultSchema, evidence: z.array(EvidenceFactSchema),
+const AnalysisBaseSchema = SimulationResponseSchema.extend({
+  created_at: z.string().datetime(), model: text(), prompt_version: text(), evidence: z.array(EvidenceFactSchema),
 });
-export const EvaluationSchema = z.discriminatedUnion("status", [
-  EvaluationBaseSchema.extend({ status: z.literal("complete"), aiAssessment: AiAssessmentSchema,
-    aiPoints: z.number().int().min(0).max(20), finalScore: score(), aiError: z.null() }).strict(),
-  EvaluationBaseSchema.extend({ status: z.literal("ai_unavailable"), aiAssessment: z.null(),
-    aiPoints: z.null(), finalScore: z.null(), aiError: AiErrorSchema }).strict(),
+export const AnalysisResponseSchema = z.discriminatedUnion("status", [
+  AnalysisBaseSchema.extend({ status: z.literal("complete"), analysis: AiAnalysisSchema, ai_error: z.null() }).strict(),
+  AnalysisBaseSchema.extend({ status: z.literal("ai_unavailable"), analysis: z.null(), ai_error: AiErrorSchema }).strict(),
 ]);
-export type Evaluation = z.infer<typeof EvaluationSchema>;
+export type AnalysisResponse = z.infer<typeof AnalysisResponseSchema>;
 export const ValidationErrorSchema = z.object({
-  code: z.enum(["invalid_request", "version_mismatch", "invalid_selections", "budget_exceeded"]),
-  message: text(), fieldErrors: z.record(z.string(), z.array(z.string())).optional(),
+  code: z.enum(["invalid_request", "version_mismatch", "invalid_decisions", "budget_exceeded"]),
+  message: text(), field_errors: z.record(z.string(), z.array(z.string())).optional(),
 }).strict();
 export type ValidationError = z.infer<typeof ValidationErrorSchema>;

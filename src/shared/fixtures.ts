@@ -1,62 +1,51 @@
-/** TEST DATA ONLY. Artificial UI fixtures, never an actual model response. */
-import {
-  CatalogSchema, EvaluateRequestSchema, EvaluationSchema,
-  type Direction, type Metrics, type AiAssessment,
-} from "./contracts";
+/** TEST DATA ONLY. Uses the authoritative JSON; explanations are handwritten UI placeholders. */
+import rawDataset from "../../dataset/dataset.json";
+import { CatalogSchema, SimulateRequestSchema, SimulationResponseSchema, AnalysisResponseSchema,
+  INDICATOR_CODES, type Metrics } from "./contracts";
 
-const metrics = (value: number): Metrics => ({ transport: value, greenery: value, social: value, safety: value, services: value });
-const fixtureDistricts = [
-  { id: "center", name: "Центр", visualVariant: "center" as const, x: 50, y: 50 },
-  { id: "north", name: "Северный", visualVariant: "residential" as const, x: 50, y: 20 },
-  { id: "south", name: "Южный", visualVariant: "mixed" as const, x: 50, y: 80 },
-  { id: "east", name: "Восточный", visualVariant: "industrial" as const, x: 80, y: 50 },
-  { id: "west", name: "Западный", visualVariant: "park" as const, x: 20, y: 50 },
-  { id: "riverside", name: "Прибрежный", visualVariant: "riverside" as const, x: 75, y: 75 },
-];
-const titles: Record<Direction, string[]> = {
-  transport: ["Настройка светофоров", "Автобусные коридоры", "Расширение магистралей"],
-  greenery: ["Дворовые скверы", "Зелёные коридоры", "Лесопарковый пояс"],
-  social: ["Модернизация объектов", "Модульные школы и поликлиники", "Крупный социальный кластер"],
-  safety: ["Освещение улиц", "Безопасные переходы", "Обновление аварийно-спасательной инфраструктуры"],
-  services: ["Диспетчеризация заявок", "Обновление вывоза отходов", "Комплексная модернизация коммунального обслуживания"],
-};
-export const fixtureCatalog = CatalogSchema.parse({
-  datasetVersion: "fixture-1.0.0", rulesVersion: "1.0.0", evaluationVersion: "1.0.0",
-  budget: { initial: 100, unit: "условная единица" }, horizonMonths: 12, metricWeights: metrics(0.2),
-  districts: fixtureDistricts.map(({ x, y, ...d }) => ({ ...d, population: 10000, baselineMetrics: metrics(50), mapPosition: { x, y } })),
-  programs: (Object.keys(titles) as Direction[]).flatMap((direction) => titles[direction].map((title, i) => ({
-    id: `${direction}-${i + 1}`, direction, title, description: "Тестовая программа для разработки интерфейса.",
-    cost: [12, 20, 28][i], implementationMonths: [3, 6, 12][i],
-    effects: fixtureDistricts.map((d) => ({ districtId: d.id, deltas: { ...metrics(0), [direction]: i + 2 } })),
-    tradeoffs: ["Тестовое описание компромисса."], risks: ["Тестовое описание риска."],
-  }))),
+export const fixtureCatalog = CatalogSchema.parse({ dataset_version: "fixture-only", dataset: rawDataset });
+export const fixtureDraftSelections = [];
+export const fixtureSimulateRequest = SimulateRequestSchema.parse({
+  dataset_version: fixtureCatalog.dataset_version, decisions: rawDataset.example.decisions,
 });
-export const fixtureDraftSelections = { transport: null, greenery: null, social: null, safety: null, services: null };
-export const fixtureEvaluateRequest = EvaluateRequestSchema.parse({
-  datasetVersion: fixtureCatalog.datasetVersion, rulesVersion: fixtureCatalog.rulesVersion, evaluationVersion: fixtureCatalog.evaluationVersion,
-  selections: { transport: "transport-1", greenery: "greenery-1", social: "social-1", safety: "safety-1", services: "services-1" },
+export const fixtureAnalyzeRequest = fixtureSimulateRequest;
+const zeros = (): Metrics => Object.fromEntries(INDICATOR_CODES.map(k => [k, 0])) as Metrics;
+const effect = (values: Partial<Metrics>): Metrics => ({ ...zeros(), ...values });
+const districts = fixtureCatalog.dataset.districts.map(d => {
+  const delta = effect({ C2: 4.375 });
+  if (d.id === "nura") Object.assign(delta, { S1: 10, S2: 8.75, B1: 12.5, B2: 1.75 });
+  if (d.id === "saryarka") Object.assign(delta, { E2: 8.75, C1: 2.5 });
+  const after = Object.fromEntries(INDICATOR_CODES.map(k => [k, d.indicators[k] + delta[k]]));
+  return { district_id: d.id, before: d.indicators, after, delta };
 });
-const item = (explanation: string) => ({ explanation, evidenceIds: ["fixture:all-districts"] });
-const criterion = { ...item("Тестовая оценка: равномерный эффект во всех районах."), score: 4 };
-const assessment: AiAssessment = {
-  summary: "ТЕСТОВЫЙ ОТЧЁТ: создан вручную для интерфейса; OpenAI не вызывался.",
-  criteria: { needs: criterion, equity: criterion, coherence: criterion, feasibility: criterion },
-  strengths: [item("Все направления охвачены."), item("Все районы получают эффект.")],
-  risks: [item("Риски внедрения требуют контроля."), item("Это тестовые, а не реальные эффекты.")],
-  consequences: [item("Каждый показатель повышается на 2 пункта."), item("Бюджетный остаток не влияет на оценку.")],
-};
-export const fixtureCompleteEvaluation = EvaluationSchema.parse({
-  ...fixtureEvaluateRequest, scenarioKey: "fixture-only-cheapest", createdAt: "2026-09-23T00:00:00.000Z",
-  model: "fixture-no-ai-call", promptVersion: "1.0.0", rubricVersion: "1.0.0",
+export const fixtureSimulation = SimulationResponseSchema.parse({
+  ...fixtureSimulateRequest, scenario_key: "fixture-only-example-95",
   simulation: {
-    budget: { initial: 100, spent: 60, remaining: 40 },
-    districts: fixtureDistricts.map((d) => ({ districtId: d.id, population: 10000, before: metrics(50), after: metrics(52), delta: metrics(2) })),
-    cityMetrics: { before: metrics(50), after: metrics(52), delta: metrics(2) }, dataScore: { before: 50, after: 52 },
+    budget: { initial: 100, spent: 95, remaining: 5 }, districts,
+    before: rawDataset.baseline, after: rawDataset.example.result, score_delta: 3.98539,
+    contributions: [
+      { measure_id: "M5", district_id: "saryarka", factor: 0.625, deltas: effect({ E2: 8.75, C1: 2.5 }) },
+      { measure_id: "M7", district_id: "nura", factor: 0.625, deltas: effect({ S1: 10 }) },
+      { measure_id: "M8", district_id: "nura", factor: 0.625, deltas: effect({ S2: 8.75 }) },
+      { measure_id: "M10", district_id: "nura", factor: 0.875, deltas: effect({ B1: 10.5, B2: 1.75 }) },
+      ...fixtureCatalog.dataset.districts.map(d => ({ measure_id: "M12", district_id: d.id, factor: 0.875, deltas: effect({ C2: 4.375 }) })),
+    ],
+    applied_synergies: [{ measure_ids: ["M10", "M12"], district_id: "nura", deltas: effect({ B1: 2 }) }],
   },
-  evidence: [{ id: "fixture:all-districts", label: "Тестовый эффект", value: "Все 6 районов: показатели 50 → 52; расходы 60." }],
-  status: "complete", aiAssessment: assessment, aiPoints: 16, finalScore: 57.6, aiError: null,
 });
-export const fixtureUnavailableEvaluation = EvaluationSchema.parse({
-  ...fixtureCompleteEvaluation, status: "ai_unavailable", aiAssessment: null, aiPoints: null, finalScore: null,
-  aiError: { code: "missing_api_key", message: "Тестовый пример недоступности AI." },
+const item = (explanation: string) => ({ explanation, evidence_ids: ["fixture:example"] });
+export const fixtureCompleteAnalysis = AnalysisResponseSchema.parse({
+  ...fixtureSimulation, created_at: "2026-09-23T00:00:00.000Z", model: "fixture-no-ai-call", prompt_version: "2.0.0",
+  evidence: [{ id: "fixture:example", label: "Контрольный пример JSON", value: "Стоимость 95; Score 56.54307; критических значений 0." }],
+  status: "complete", ai_error: null,
+  analysis: {
+    summary: "ТЕСТОВЫЙ ТЕКСТ для интерфейса. AI не вызывался. Score рассчитан по JSON, AI баллов не добавляет.",
+    strengths: [item("Устранены критические значения соцсферы в Нуре."), item("Синергия освещения и цифровой платформы улучшает безопасность Нуры.")],
+    risks: [item("Остаются сравнительно слабые показатели в других районах."), item("Реальный результат вне синтетической модели не гарантируется.")],
+    consequences: [item("Score повышается на 3.98539."), item("Остаётся 5 единиц бюджета; сам остаток не даёт бонуса.")],
+  },
+});
+export const fixtureUnavailableAnalysis = AnalysisResponseSchema.parse({
+  ...fixtureCompleteAnalysis, status: "ai_unavailable", analysis: null,
+  ai_error: { code: "missing_api_key", message: "Тестовая ошибка AI; расчёт и Score остаются доступны." },
 });
