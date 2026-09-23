@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AiErrorSchema, DecisionSchema, EffectsSchema, ExplanationItemSchema, SimulateRequestSchema, SimulationResponseSchema, SimulationResultSchema } from "./contracts";
+import { AiErrorSchema, DecisionSchema, EffectsSchema, EvidenceFactSchema, ExplanationItemSchema, SimulateRequestSchema, SimulationResponseSchema, SimulationResultSchema } from "./contracts";
 
 /** Additive, browser-safe contracts. Existing simulator contracts remain unchanged. */
 export const FEATURES_VERSION = "1.0.0";
@@ -10,6 +10,7 @@ export const LeaderboardEntrySchema = z.object({
   scenario: SimulationResponseSchema, submitted_at: z.string().datetime(),
 }).strict();
 export type LeaderboardEntry = z.infer<typeof LeaderboardEntrySchema>;
+export const LeaderboardSubmitResponseSchema = z.object({ policy: z.literal("personal_best"), entry: LeaderboardEntrySchema }).strict();
 export const LeaderboardResponseSchema = z.object({
   dataset_version: z.string(), mode: z.literal("standard"), policy: z.literal("personal_best"),
   total: z.number().int().nonnegative(), offset: z.number().int().nonnegative(), limit: z.number().int().positive(),
@@ -38,6 +39,7 @@ export const RecommendationsResponseSchema = z.object({
   status: z.enum(["complete", "ai_unavailable", "no_improvement"]),
   model: z.string(), prompt_version: z.string(),
   notes: RecommendationNotesSchema.nullable(), ai_error: AiErrorSchema.nullable(),
+  evidence: z.array(EvidenceFactSchema),
 }).strict();
 
 export const CityEventSchema = z.object({
@@ -66,5 +68,6 @@ export const PresentationResponseSchema = z.object({
   source: SimulationResponseSchema, title: z.string(), slides: z.array(SlideSchema).min(5), markdown: z.string(),
   status: z.enum(["complete", "ai_unavailable"]), model: z.string(), prompt_version: z.string(),
   ai_error: AiErrorSchema.nullable(),
+  evidence: z.array(EvidenceFactSchema),
 }).strict();
 export type Slide = z.infer<typeof SlideSchema>;

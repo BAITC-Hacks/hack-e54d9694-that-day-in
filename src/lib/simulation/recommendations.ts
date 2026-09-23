@@ -27,5 +27,6 @@ export function recommendScenarios(data: Dataset, input: Decision[]): Recommenda
       }
     }
   }
-  return found.sort((a, b) => b.score_gain - a.score_gain || a.cost_delta - b.cost_delta || a.id.localeCompare(b.id, "en")).slice(0, 3);
+  return found.sort((a, b) => b.score_gain - a.score_gain || a.cost_delta - b.cost_delta || a.id.localeCompare(b.id, "en"))
+    .slice(0, 3).map((candidate, index) => ({ ...candidate, id: `alternative-${index + 1}` }));
 }

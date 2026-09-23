@@ -14,8 +14,9 @@ export const fixtureLeaderboard = LeaderboardResponseSchema.parse({
 });
 export const fixtureRecommendations = RecommendationsResponseSchema.parse({
   source: fixtureSimulation, search: "single_replacement", candidates: recommendScenarios(fixtureCatalog.dataset, fixtureSimulation.decisions),
-  status: "ai_unavailable", model: "fixture-no-ai", prompt_version: "recommendations-1.0.0", notes: null,
+  status: "ai_unavailable", model: "fixture-no-ai", prompt_version: "recommendations-1.0.1", notes: null,
   ai_error: { code: "missing_api_key", message: "Тестовый пример без AI." },
+  evidence: [],
 });
 export const fixtureEvent = EventResponseSchema.parse({
   dataset_version: "fixture-only", event_version: FEATURES_VERSION, event: cityEvents[1],
@@ -26,4 +27,5 @@ const slides = buildSlides(fixtureCatalog.dataset, fixtureSimulation, fixtureCom
 export const fixturePresentation = PresentationResponseSchema.parse({
   source: fixtureSimulation, title: "Тестовая презентация", slides, markdown: slidesToMarkdown("Тестовая презентация", slides),
   status: "complete", model: "fixture-no-ai", prompt_version: "fixture-only", ai_error: null,
+  evidence: fixtureCompleteAnalysis.evidence,
 });

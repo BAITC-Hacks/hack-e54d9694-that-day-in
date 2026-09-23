@@ -47,6 +47,14 @@ describe("optional feature domain rules", () => {
     expect(result.simulation.districts.find(d => d.district_id === "nura")!.before.E1).toBe(0);
     expect(JSON.stringify(dataset)).toBe(before);
   });
+  it("allows reallocating the plan for every event", () => {
+    const decisions = dataset.example.decisions.map(d => d.measure_id === "M5" ? { ...d, measure_id: "M4" } : d);
+    for (const event of cityEvents) {
+      const result = simulateEvent(dataset, event, decisions);
+      expect(result.total_budget.measures_spent).toBe(85);
+      expect(result.total_budget.remaining).toBeGreaterThanOrEqual(0);
+    }
+  });
   it("builds a useful presentation without AI and escapes markdown", () => {
     const slides = buildSlides(dataset, fixtureSimulation, null);
     expect(slides).toHaveLength(6);
