@@ -32,7 +32,7 @@
 **100** единиц бюджета · **5** районов · **5** направлений · **14** мероприятий · **10** показателей · **8** кварталов моделирования
 
 > [!NOTE]
-> **Где находится приложение.** Рабочая интеграция — [`codex/ui`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/ui); опубликованная версия подготовлена в [`codex/deploy`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/deploy). В `main` пока размещены датасет и витрина проекта. Для запуска переключитесь на `codex/ui`. [Назначение всех веток →](docs/repository.md)
+> **Актуальная версия — [`main`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/main).** Здесь находятся приложение, датасет, тесты и документация. Ветки `codex/*` сохраняют этапы разработки; для знакомства и запуска используйте `main`. [Назначение всех веток →](docs/repository.md)
 
 ## Возможности
 
@@ -83,7 +83,7 @@
 ```sh
 git clone https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in.git
 cd hack-e54d9694-that-day-in
-git switch codex/ui
+git switch main
 npm ci
 npm run dev
 ```
