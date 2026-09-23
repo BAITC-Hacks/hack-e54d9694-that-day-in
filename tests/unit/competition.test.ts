@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { participantIdentity } from "../../src/lib/competition/identity";
-import { RedisLeaderboardStore } from "../../src/lib/competition/store";
+import { configuredLeaderboardStore, RedisLeaderboardStore } from "../../src/lib/competition/store";
 import { rankEntries } from "../../src/lib/simulation/leaderboard";
 import { fixtureLeaderboard } from "../../src/shared/features-fixtures";
 
@@ -27,6 +27,16 @@ describe("participant identity and ranking", () => {
 });
 
 describe("Redis REST adapter without real credentials", () => {
+  afterEach(() => vi.unstubAllEnvs());
+  it("supports Marketplace credentials and never mixes credential pairs", () => {
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
+    vi.stubEnv("KV_REST_API_URL", "https://redis.example.test");
+    vi.stubEnv("KV_REST_API_TOKEN", "test-token");
+    expect(configuredLeaderboardStore()).toBeInstanceOf(RedisLeaderboardStore);
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://other.example.test");
+    expect(() => configuredLeaderboardStore()).toThrow();
+  });
   it("atomically publishes using server-side Lua and version-scoped keys", async () => {
     const row = fixtureLeaderboard.entries[0];
     const entry = { participant_id: row.participant_id, display_name: row.display_name, scenario: row.scenario, submitted_at: row.submitted_at };
@@ -46,11 +56,25 @@ describe("Redis REST adapter without real credentials", () => {
     const store = new RedisLeaderboardStore("https://redis.example.test", "token", fetcher);
     expect((await store.page("fixture-only", 0, 20)).entries).toEqual([]);
   });
+  it("accepts the real Upstash empty-board response without a null field", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ result: JSON.stringify({ entries: [], total: 0, winner_count: 0 }) }));
+    const page = await new RedisLeaderboardStore("https://redis.example.test", "token", fetcher).page("fixture-only", 0, 20);
+    expect(page.best_score).toBeNull();
+    expect(page.entries).toEqual([]);
+  });
+  it("preserves city-wide district_id=null without a Lua JSON round trip", async () => {
+    const row = fixtureLeaderboard.entries[0];
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ result: JSON.stringify({
+      entries: [{ entry: JSON.stringify(row), rank: 1, is_winner: true }], total: 1, best_score: 56.54307, winner_count: 1,
+    }) }));
+    const page = await new RedisLeaderboardStore("https://redis.example.test", "token", fetcher).page("fixture-only", 0, 20);
+    expect(page.entries[0].scenario.decisions.some(d => d.district_id === null)).toBe(true);
+  });
   it("rejects failed commands, corrupt replies and mismatched versions", async () => {
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(Response.json({ error: "ERR" }))
       .mockResolvedValueOnce(Response.json({ result: "not-json" }))
-      .mockResolvedValueOnce(Response.json({ result: JSON.stringify({ entries: fixtureLeaderboard.entries, total: 1, best_score: 56.54307, winner_count: 1 }) }));
+      .mockResolvedValueOnce(Response.json({ result: JSON.stringify({ entries: fixtureLeaderboard.entries.map(row => ({ entry: JSON.stringify(row), rank: row.rank, is_winner: row.is_winner })), total: 1, best_score: 56.54307, winner_count: 1 }) }));
     const store = new RedisLeaderboardStore("https://redis.example.test", "token", fetcher);
     await expect(store.page("version", 0, 20)).rejects.toThrow();
     await expect(store.page("version", 0, 20)).rejects.toThrow();
