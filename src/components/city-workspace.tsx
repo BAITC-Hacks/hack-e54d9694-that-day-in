@@ -25,7 +25,9 @@ import {
   Waves,
   X,
 } from "lucide-react";
-import dataset from "../../dataset/dataset.json";
+import { dataset } from "@/data";
+import { validateSelections } from "@/lib/simulation";
+import { useScenario } from "@/features/simulator/use-scenario";
 import CityMap from "./city-map";
 import type { Direction } from "@/shared/contracts";
 
@@ -60,6 +62,11 @@ type DirectionId = Direction;
 export default function CityWorkspace() {
   const [selected, setSelected] = useState("nura");
   const [direction, setDirection] = useState<DirectionId | "all">("all");
+  const [forecast, setForecast] = useState(false);
+  const scenario = useScenario();
+  const { simulation, decisions } = scenario;
+  const summary = forecast ? simulation.after : simulation.before;
+  const resultDialog = useRef<HTMLDialogElement>(null);
   const catalogDialog = useRef<HTMLDialogElement>(null);
   const rulesDialog = useRef<HTMLDialogElement>(null);
   const district = dataset.districts.find((d) => d.id === selected)!;
@@ -70,6 +77,13 @@ export default function CityWorkspace() {
     (i) => direction === "all" || i.direction_id === direction,
   );
   const openCatalog = () => catalogDialog.current?.showModal();
+  const currentDistrict = simulation.districts.find(
+    (d) => d.district_id === selected,
+  )!;
+  const districtValues = forecast
+    ? currentDistrict.after
+    : currentDistrict.before;
+  const format = (value: number) => value.toFixed(2).replace(".", ",");
 
   return (
     <div className="application">
@@ -129,53 +143,81 @@ export default function CityWorkspace() {
                 <Wallet size={17} /> Городской бюджет <span>01</span>
               </div>
               <div className="budget-value">
-                100<span> / 100</span>
+                {simulation.budget.remaining}
+                <span> / {simulation.budget.initial}</span>
               </div>
               <div className="budget-caption">условных единиц доступно</div>
               <div className="budget-track">
-                <span />
+                <span
+                  style={{
+                    width: `${(simulation.budget.remaining / simulation.budget.initial) * 100}%`,
+                  }}
+                />
               </div>
               <div className="budget-foot">
                 <span>
-                  Потрачено <strong>0</strong>
+                  Потрачено <strong>{simulation.budget.spent}</strong>
                 </span>
                 <span>
-                  Осталось <strong>100</strong>
+                  Осталось <strong>{simulation.budget.remaining}</strong>
                 </span>
               </div>
             </section>
             <section className="decision-plan">
               <div className="section-title">
                 <h2>Ваш план</h2>
-                <span className="count-pill">0 / 5</span>
+                <span className="count-pill" aria-live="polite">
+                  {decisions.length} / 5
+                </span>
               </div>
               <p className="small-muted">Каждое решение меняет город.</p>
               <ol className="decision-list">
-                {Array.from({ length: 5 }, (_, i) => (
-                  <li key={i}>
-                    <span className="step-number">0{i + 1}</span>
-                    <div>
-                      <strong>
-                        {i === 0 ? "Первое решение — за вами" : "Новое решение"}
-                      </strong>
-                      <span>
-                        {i === 0
-                          ? "Изучите районы и мероприятия"
-                          : "Место для вашего выбора"}
-                      </span>
-                    </div>
-                    {i === 0 ? (
-                      <button
-                        aria-label="Изучить мероприятия для первого решения"
-                        onClick={openCatalog}
-                      >
-                        <Plus size={16} />
-                      </button>
-                    ) : (
-                      <span className="step-placeholder">+</span>
-                    )}
-                  </li>
-                ))}
+                {Array.from({ length: 5 }, (_, i) => {
+                  const decision = decisions[i];
+                  const measure = dataset.measures.find(
+                    (m) => m.id === decision?.measure_id,
+                  );
+                  const target = dataset.districts.find(
+                    (d) => d.id === decision?.district_id,
+                  );
+                  return (
+                    <li key={i} className={measure ? "decision-filled" : ""}>
+                      <span className="step-number">0{i + 1}</span>
+                      <div>
+                        <strong>
+                          {measure?.name ??
+                            (i === 0
+                              ? "Первое решение — за вами"
+                              : "Новое решение")}
+                        </strong>
+                        <span>
+                          {measure
+                            ? `${target?.name ?? "Весь город"} · ${measure.cost} ед.`
+                            : i === 0
+                              ? "Изучите районы и мероприятия"
+                              : "Место для вашего выбора"}
+                        </span>
+                      </div>
+                      {measure ? (
+                        <button
+                          aria-label={`Удалить ${measure.id}`}
+                          onClick={() => scenario.remove(measure.id)}
+                        >
+                          <X size={14} />
+                        </button>
+                      ) : i === decisions.length ? (
+                        <button
+                          aria-label="Изучить мероприятия для первого решения"
+                          onClick={openCatalog}
+                        >
+                          <Plus size={16} />
+                        </button>
+                      ) : (
+                        <span className="step-placeholder">+</span>
+                      )}
+                    </li>
+                  );
+                })}
               </ol>
               <div className="plan-note">
                 <Leaf size={17} />
@@ -184,14 +226,27 @@ export default function CityWorkspace() {
                   <br />с внимания к каждому району.
                 </p>
               </div>
-              <button className="analysis-button" disabled>
+              <button
+                className="analysis-button"
+                disabled={!scenario.valid}
+                onClick={() => resultDialog.current?.showModal()}
+              >
                 <Sparkles size={16} /> Оценить сценарий <ArrowRight size={17} />
               </button>
               <p className="stage-note">
-                Выбор решений появится после
-                <br />
-                подключения расчётного модуля.
+                {scenario.notice ||
+                  (scenario.valid
+                    ? "План готов. Посмотрите результат решений."
+                    : "Выберите пять разных мероприятий.")}
               </p>
+              {decisions.length > 0 ? (
+                <button
+                  className="clear-plan"
+                  onClick={() => scenario.replace([])}
+                >
+                  Очистить план
+                </button>
+              ) : null}
             </section>
             <div className="horizon-card">
               <Clock3 size={20} />
@@ -208,7 +263,22 @@ export default function CityWorkspace() {
                 <span className="live-dot" />
                 <h2>Панорама города</h2>
               </div>
-              <span className="state-label">Исходное состояние</span>
+              <div className="view-toggle">
+                <button
+                  className={!forecast ? "active" : ""}
+                  aria-pressed={!forecast}
+                  onClick={() => setForecast(false)}
+                >
+                  До решений
+                </button>
+                <button
+                  className={forecast ? "active" : ""}
+                  aria-pressed={forecast}
+                  onClick={() => setForecast(true)}
+                >
+                  Прогноз
+                </button>
+              </div>
             </div>
             <div className="category-filters" aria-label="Направления">
               <button
@@ -231,7 +301,21 @@ export default function CityWorkspace() {
                 );
               })}
             </div>
-            <CityMap selected={selected} onSelect={setSelected} />
+            <CityMap
+              selected={selected}
+              onSelect={setSelected}
+              changes={
+                forecast
+                  ? Object.fromEntries(
+                      dataset.districts.map((d) => [
+                        d.id,
+                        simulation.after.district_scores[d.id] -
+                          simulation.before.district_scores[d.id],
+                      ]),
+                    )
+                  : undefined
+              }
+            />
             <div className="city-insight">
               <span className="insight-icon">
                 <MapPin size={19} />
@@ -246,22 +330,32 @@ export default function CityWorkspace() {
             </div>
             <section
               className="city-stats"
-              aria-label="Исходные показатели города"
+              aria-label={
+                forecast
+                  ? "Прогнозные показатели города"
+                  : "Исходные показатели города"
+              }
             >
               <div>
                 <span>
                   Качество жизни города <CircleHelp size={12} />
                 </span>
                 <strong>
-                  {dataset.baseline.score.toFixed(2).replace(".", ",")}
+                  {forecast && !scenario.valid ? "—" : format(summary.score)}
                   <small>Score</small>
                 </strong>
-                <p>Исходная оценка</p>
+                <p>
+                  {forecast
+                    ? scenario.valid
+                      ? "Расчёт по выбранным решениям"
+                      : `Для Score нужно ещё ${5 - decisions.length} решений`
+                    : "Исходная оценка"}
+                </p>
               </div>
               <div>
                 <span>Средний индекс районов</span>
                 <strong>
-                  {dataset.baseline.city_average.toFixed(2).replace(".", ",")}
+                  {format(summary.city_average)}
                   <small>/ 100</small>
                 </strong>
                 <p>С учётом доли населения</p>
@@ -269,7 +363,7 @@ export default function CityWorkspace() {
               <div>
                 <span>Требуют внимания</span>
                 <strong className="warm-number">
-                  {dataset.baseline.critical_count}
+                  {summary.critical_count}
                   <small>показателя</small>
                 </strong>
                 <p>Значения ниже 40</p>
@@ -307,15 +401,13 @@ export default function CityWorkspace() {
                 <div>
                   <span>Индекс района</span>
                   <strong>
-                    {district.computed_district_score
-                      .toFixed(2)
-                      .replace(".", ",")}
+                    {format(summary.district_scores[district.id])}
                     <small>/ 100</small>
                   </strong>
                 </div>
                 <div className="score-status">
                   <span className="status-dot" />
-                  {district.computed_district_score < 50
+                  {summary.district_scores[district.id] < 50
                     ? "Есть потенциал роста"
                     : "Есть точки улучшения"}
                 </div>
@@ -326,10 +418,7 @@ export default function CityWorkspace() {
               </div>
               <div className="metric-list">
                 {indicators.map((indicator) => {
-                  const value =
-                    district.indicators[
-                      indicator.code as keyof typeof district.indicators
-                    ];
+                  const value = districtValues[indicator.code];
                   const critical = value < dataset.scoring.critical_threshold;
                   return (
                     <div
@@ -339,7 +428,7 @@ export default function CityWorkspace() {
                       <div>
                         <span>{indicatorLabels[indicator.code]}</span>
                         <strong>
-                          {value}
+                          {Number(value.toFixed(2))}
                           {critical ? <ArrowDownRight size={12} /> : null}
                         </strong>
                       </div>
@@ -406,11 +495,49 @@ export default function CityWorkspace() {
           </select>
           <ChevronDown size={15} />
         </div>
+        <div className="district-picker">
+          <label htmlFor="target-district">
+            Район для районных мероприятий
+          </label>
+          <select
+            id="target-district"
+            value={selected}
+            onChange={(event) => setSelected(event.target.value)}
+          >
+            {dataset.districts.map((d) => (
+              <option value={d.id} key={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+          <span>
+            В плане {decisions.length}/5 · осталось{" "}
+            {simulation.budget.remaining} ед.
+          </span>
+        </div>
         <div className="catalog-grid">
           {measures.map((measure) => {
             const Icon = categoryIcons[measure.direction_id as DirectionId];
+            const added = decisions.some((d) => d.measure_id === measure.id);
+            const next = [
+              ...decisions,
+              {
+                measure_id: measure.id,
+                district_id: measure.scope === "city" ? null : selected,
+              },
+            ];
+            const validation = validateSelections(dataset, next, {
+              draft: true,
+            });
+            const reason = !validation.valid
+              ? (Object.values(validation.error.field_errors ?? {}).flat()[0] ??
+                validation.error.message)
+              : "";
             return (
-              <article className="measure-card" key={measure.id}>
+              <article
+                className={`measure-card ${added ? "measure-added" : ""}`}
+                key={measure.id}
+              >
                 <div className="measure-top">
                   <span className="measure-icon">
                     <Icon size={19} />
@@ -439,6 +566,28 @@ export default function CityWorkspace() {
                   )}
                 </div>
                 <p>Полные эффекты до учёта лага</p>
+                <button
+                  className="add-measure"
+                  aria-label={`Добавить ${measure.id}`}
+                  disabled={!scenario.loaded || !validation.valid}
+                  onClick={() => {
+                    scenario.replace(next);
+                    setForecast(true);
+                  }}
+                >
+                  {added ? (
+                    <>
+                      <Check size={14} /> В вашем плане
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={14} /> Добавить в план
+                    </>
+                  )}
+                </button>
+                {!added && reason ? (
+                  <p className="measure-reason">{reason}</p>
+                ) : null}
               </article>
             );
           })}
@@ -446,8 +595,8 @@ export default function CityWorkspace() {
         <div className="catalog-stage">
           <Check size={16} />
           <span>
-            Каталог из GitHub · 14 мероприятий. На этом этапе доступно изучение;
-            выбор и расчёт подключаются следующим шагом.
+            Лаги, синергии и несовместимости учитываются общим расчётным
+            модулем. Городские меры действуют во всех районах.
           </span>
         </div>
       </dialog>
@@ -490,9 +639,72 @@ export default function CityWorkspace() {
           критических показателей
         </div>
         <p className="small-muted">
-          Сейчас доступен первый этап: карта и изучение исходных данных. Числа
-          на главном экране — исходные значения из датасета, а не результат
-          принятых решений.
+          Показатели синтетические. Прогноз — результат учебной модели, а не
+          оценка реальных городских проектов.
+        </p>
+        <button
+          className="district-action"
+          onClick={() => {
+            scenario.replace(dataset.example.decisions);
+            setForecast(true);
+            rulesDialog.current?.close();
+          }}
+        >
+          Загрузить контрольный пример · 95 ед. <ArrowRight size={16} />
+        </button>
+      </dialog>
+
+      <dialog ref={resultDialog} className="rules-dialog result-dialog">
+        <div className="dialog-heading">
+          <div>
+            <div className="eyebrow">РЕЗУЛЬТАТ ВАШИХ РЕШЕНИЙ</div>
+            <h2>Город стал другим.</h2>
+          </div>
+          <button
+            className="icon-button"
+            aria-label="Закрыть результат"
+            onClick={() => resultDialog.current?.close()}
+          >
+            <X />
+          </button>
+        </div>
+        <div className="result-score">
+          <span>Astana Quality of Life Score</span>
+          <strong>
+            {scenario.valid ? format(simulation.after.score) : "—"}
+          </strong>
+          <span>
+            {simulation.score_delta >= 0 ? "+" : ""}
+            {format(simulation.score_delta)} к исходному состоянию
+          </span>
+        </div>
+        <div className="result-breakdown">
+          <div>
+            <span>Средний индекс</span>
+            <strong>{format(simulation.after.city_average)}</strong>
+          </div>
+          <div>
+            <span>Слабейший район</span>
+            <strong>{format(simulation.after.minimum_district_score)}</strong>
+          </div>
+          <div>
+            <span>Критических значений</span>
+            <strong>{simulation.after.critical_count}</strong>
+          </div>
+          <div>
+            <span>Потрачено бюджета</span>
+            <strong>{simulation.budget.spent} / 100</strong>
+          </div>
+        </div>
+        <div className="formula-note">
+          {simulation.applied_synergies.length
+            ? `Сработало синергий: ${simulation.applied_synergies.length}. `
+            : ""}
+          Числа рассчитаны общим модулем по правилам GitHub-датасета.
+        </div>
+        <p className="small-muted">
+          Локальный расчёт готов. Серверная проверка и AI-объяснение
+          подключаются следующим этапом. AI не изменяет Score.
         </p>
       </dialog>
     </div>

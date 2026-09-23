@@ -1513,3 +1513,210 @@ dialog::backdrop {
     scroll-behavior: auto !important;
   }
 }
+
+/* Scenario controls share the same quiet, botanical palette as the city. */
+.view-toggle {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  background: #f0f3e9;
+  border: 1px solid #e0e6d6;
+  border-radius: 8px;
+}
+.view-toggle button {
+  padding: 6px 9px;
+  background: transparent;
+  color: #86967a;
+  font-size: 10px;
+  border-radius: 5px;
+}
+.view-toggle button.active {
+  background: #fffefa;
+  color: #37664c;
+  box-shadow: 0 1px 4px #18372910;
+}
+.decision-list .decision-filled {
+  align-items: flex-start;
+}
+.decision-list .decision-filled > div {
+  min-width: 0;
+  flex: 1;
+  display: block;
+}
+.decision-list .decision-filled strong {
+  color: #476747;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1.6;
+}
+.decision-list .decision-filled .step-number {
+  background: #e1edda;
+  border-style: solid;
+  color: #567747;
+  flex-shrink: 0;
+}
+.decision-list .decision-filled > button {
+  display: flex;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.analysis-button:not(:disabled) {
+  background: #2c634e;
+  color: #f9fff0;
+}
+.analysis-button:not(:disabled):hover {
+  background: #214d3c;
+}
+.clear-plan {
+  display: block;
+  margin: 10px auto 0;
+  background: none;
+  color: #8a967e;
+  font-size: 9px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.district-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 10px;
+  color: #718665;
+  margin: -3px 0 18px;
+}
+.district-picker select {
+  font: inherit;
+  padding: 7px;
+  border: 1px solid #dce5d3;
+  border-radius: 6px;
+  background: #f5f8ef;
+  color: #4b6a40;
+}
+.district-picker > span {
+  margin-left: auto;
+}
+.add-measure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px;
+  border: 1px solid #d0dfc5;
+  border-radius: 7px;
+  color: #4e763b;
+  background: #e9f1e0;
+  font-size: 11px;
+  font-weight: 650;
+}
+.add-measure:not(:disabled):hover {
+  background: #dceacb;
+}
+.add-measure:disabled {
+  opacity: 0.55;
+  background: #f0f2ea;
+  border-color: #e0e5d8;
+}
+.measure-card.measure-added {
+  border-color: #96b781;
+  background: #f1f7e9;
+}
+.measure-card .measure-reason {
+  font-size: 9px;
+  line-height: 1.5;
+  color: #a4804e;
+}
+.result-score {
+  text-align: center;
+  padding: 27px 0;
+}
+.result-score > span {
+  display: block;
+  font-size: 12px;
+  color: #849674;
+}
+.result-score > strong {
+  font-size: 72px;
+  line-height: 1.3;
+  font-weight: 550;
+  letter-spacing: -4px;
+  color: #32664b;
+}
+.result-breakdown {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.result-breakdown > div {
+  padding: 15px;
+  border: 1px solid #e2e8d8;
+  border-radius: 9px;
+}
+.result-breakdown span {
+  display: block;
+  font-size: 10px;
+  color: #849674;
+}
+.result-breakdown strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 20px;
+  font-weight: 550;
+}
+.metric-row > div > span,
+.metric-row strong {
+  font-size: 10px;
+}
+.district-profile {
+  font-size: 10px;
+}
+.city-stats > div > span {
+  font-size: 9px;
+}
+.stage-note {
+  font-size: 9px;
+}
+@media (max-width: 1020px) {
+  .decision-list:has(.decision-filled) {
+    display: block;
+  }
+  .decision-list:has(.decision-filled) li {
+    margin-bottom: 12px;
+    gap: 9px;
+  }
+  .decision-list:has(.decision-filled) li:last-child {
+    margin-bottom: 0;
+  }
+}
+@media (max-width: 720px) {
+  .plan-sidebar:has(.decision-filled) {
+    grid-template-columns: 1fr;
+  }
+  .plan-sidebar:has(.decision-filled) .budget-card {
+    padding: 16px 20px;
+  }
+  .decision-list .decision-filled strong {
+    font-size: 12px;
+  }
+  .district-picker > span {
+    width: 100%;
+    margin-left: 0;
+  }
+  .view-toggle button {
+    font-size: 8px;
+    padding: 6px;
+  }
+  .metric-row > div > span,
+  .metric-row strong {
+    font-size: 9px;
+  }
+  .city-stats > div > span {
+    font-size: 7px;
+  }
+}
