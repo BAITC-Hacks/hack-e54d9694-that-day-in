@@ -161,5 +161,10 @@ export function useReport() {
       clearTimeout(timeout);
     }
   }
-  return { ...report, run };
+  function reset() {
+    generation.current++;
+    active.current?.abort();
+    setReport(initial);
+  }
+  return { ...report, run, reset };
 }

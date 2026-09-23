@@ -133,7 +133,7 @@ export default function CityMap({
   decisions: Decision[];
   changes?: Record<string, number>;
 }) {
-  const [camera, setCamera] = useState({ x: -230, y: -20, width: 1530 });
+  const [camera, setCamera] = useState({ x: -25, y: 0, width: 1250 });
   const svg = useRef<SVGSVGElement>(null);
   const drag = useRef<{
     id: number;
@@ -143,19 +143,21 @@ export default function CityMap({
     cy: number;
     moved: boolean;
   } | null>(null);
-  const height = camera.width * 0.66;
+  const suppressClick = useRef(false);
+  const height = camera.width * 0.68;
   function zoom(factor: number) {
     setCamera((c) => {
-      const width = Math.max(520, Math.min(1750, c.width * factor));
+      const width = Math.max(780, Math.min(1500, c.width * factor));
       return {
         x: c.x + (c.width - width) / 2,
-        y: c.y + (c.width - width) * 0.33,
+        y: c.y + (c.width - width) * 0.34,
         width,
       };
     });
   }
   function pointerDown(e: PointerEvent<SVGSVGElement>) {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || drag.current) return;
+    suppressClick.current = false;
     drag.current = {
       id: e.pointerId,
       x: e.clientX,
@@ -166,12 +168,17 @@ export default function CityMap({
     };
   }
   function pointerMove(e: PointerEvent<SVGSVGElement>) {
+    if (e.pointerType === "mouse" && (e.buttons & 1) === 0) {
+      drag.current = null;
+      return;
+    }
     const d = drag.current;
     if (!d || d.id !== e.pointerId || !svg.current) return;
     const dx = e.clientX - d.x,
       dy = e.clientY - d.y;
     if (Math.abs(dx) + Math.abs(dy) < 6 && !d.moved) return;
     d.moved = true;
+    suppressClick.current = true;
     svg.current.setPointerCapture(e.pointerId);
     const ratio = Math.max(
       camera.width / svg.current.clientWidth,
@@ -183,8 +190,13 @@ export default function CityMap({
       y: Math.max(-500, Math.min(800, d.cy - dy * ratio)),
     }));
   }
+  function stopDrag(e: PointerEvent<SVGSVGElement>) {
+    drag.current = null;
+    if (svg.current?.hasPointerCapture(e.pointerId))
+      svg.current.releasePointerCapture(e.pointerId);
+  }
   const select = (id: string) => {
-    if (!drag.current?.moved) onSelect(id);
+    if (!suppressClick.current) onSelect(id);
   };
   return (
     <div className="map-stage">
@@ -192,15 +204,16 @@ export default function CityMap({
         ref={svg}
         className="city-scene"
         viewBox={`${camera.x} ${camera.y} ${camera.width} ${height}`}
-        aria-label="Игровая карта Астаны на географии OpenStreetMap"
+        aria-label="Стилизованная карта районов Астаны"
         onPointerDown={pointerDown}
         onPointerMove={pointerMove}
-        onPointerUp={(e) => {
-          if (svg.current?.hasPointerCapture(e.pointerId))
-            svg.current.releasePointerCapture(e.pointerId);
-        }}
-        onPointerCancel={() => {
+        onPointerUp={stopDrag}
+        onPointerCancel={stopDrag}
+        onLostPointerCapture={() => {
           drag.current = null;
+        }}
+        onPointerLeave={() => {
+          if (!drag.current?.moved) drag.current = null;
         }}
       >
         <defs>
@@ -227,8 +240,8 @@ export default function CityMap({
               key={zone.id}
               points={zone.polygon}
               fill={zone.color}
-              fillOpacity={selected === zone.id ? 0.18 : 0.045}
-              stroke={selected === zone.id ? "#286856" : zone.color}
+              fillOpacity={selected === zone.id ? 0.17 : 0.09}
+              stroke={selected === zone.id ? "#244d7c" : zone.color}
               strokeOpacity={selected === zone.id ? 0.9 : 0.55}
               strokeWidth={selected === zone.id ? 3 : 1.5}
               strokeDasharray={selected === zone.id ? undefined : "6 5"}
@@ -307,14 +320,16 @@ export default function CityMap({
             return (
               <g key={l.name} transform={`translate(${p.x} ${p.y})`}>
                 <g filter="url(#landmark-shadow)">
-                  <LandmarkArt kind={l.kind} />
+                  <g transform="scale(1.35)">
+                    <LandmarkArt kind={l.kind} />
+                  </g>
                 </g>
                 <text
                   textAnchor="middle"
-                  y="23"
-                  fontSize="10"
+                  y="28"
+                  fontSize="12"
                   fontWeight="650"
-                  fill="#3b5c57"
+                  fill="#344e70"
                   stroke="#f5f8e9"
                   strokeWidth="4"
                   paintOrder="stroke"
@@ -354,8 +369,8 @@ export default function CityMap({
                 width="156"
                 height="51"
                 rx="18"
-                fill={active ? "#215e50" : "#fffef8"}
-                stroke={active ? "#fff" : "#d1dbca"}
+                fill={active ? "#203959" : "#fffdfa"}
+                stroke={active ? "#fff" : "#d9dfe7"}
                 strokeWidth="2"
               />
               <g transform="translate(-49 9) scale(.45)">
@@ -364,7 +379,7 @@ export default function CityMap({
               <text
                 x="-24"
                 y="-3"
-                fill={active ? "#fff" : "#294c43"}
+                fill={active ? "#fff" : "#233a56"}
                 fontSize="14"
                 fontWeight="750"
               >
@@ -373,7 +388,7 @@ export default function CityMap({
               <text
                 x="-24"
                 y="13"
-                fill={active ? "#cee8cf" : "#708379"}
+                fill={active ? "#d1e1ef" : "#687d91"}
                 fontSize="9"
               >
                 {count ? `${count} в плане` : "Выбрать район"}
@@ -421,7 +436,7 @@ export default function CityMap({
                             width="24"
                             height="24"
                             rx="8"
-                            fill="#2c7759"
+                            fill="#315d91"
                             stroke="#fffef5"
                             strokeWidth="1.5"
                           />
@@ -447,7 +462,7 @@ export default function CityMap({
                     rx="10"
                     fill="#fffef5"
                   />
-                  <text textAnchor="middle" y="5" fontSize="11" fill="#245e4c">
+                  <text textAnchor="middle" y="5" fontSize="11" fill="#315d91">
                     {changes[zone.id] > 0 ? "+" : ""}
                     {changes[zone.id].toFixed(2)} п.
                   </text>
@@ -465,20 +480,20 @@ export default function CityMap({
         <button
           aria-label="Увеличить карту"
           onClick={() => zoom(0.8)}
-          disabled={camera.width <= 520}
+          disabled={camera.width <= 780}
         >
           <Plus size={19} />
         </button>
         <button
           aria-label="Уменьшить карту"
           onClick={() => zoom(1.25)}
-          disabled={camera.width >= 1750}
+          disabled={camera.width >= 1500}
         >
           <Minus size={19} />
         </button>
         <button
           aria-label="Вернуть масштаб карты"
-          onClick={() => setCamera({ x: -230, y: -20, width: 1530 })}
+          onClick={() => setCamera({ x: -25, y: 0, width: 1250 })}
         >
           <Scan size={18} />
         </button>
@@ -491,7 +506,7 @@ export default function CityMap({
         >
           © OpenStreetMap · ODbL
         </a>
-        <span>Игровые границы · места мероприятий условные</span>
+        <span>Условные границы и кварталы</span>
       </div>
     </div>
   );

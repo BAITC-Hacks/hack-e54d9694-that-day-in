@@ -1,49 +1,49 @@
-"""Build the offline stylized map: python3 scripts/build-city-map.py [Overpass JSON].
-The committed compact source and resulting geography are OSM-derived / ODbL 1.0.
-Raw query and attribution are documented in docs/map.md. No runtime map service.
+"""Rebuild the simplified illustrated base from the committed OSM source.
+python3 scripts/build-city-map.py
+Water and selected main roads retain geography; building clusters are illustrations.
 """
-import json,sys,math
+import json, math
 from pathlib import Path
 root=Path(__file__).resolve().parents[1]
-out=root/'public/maps';out.mkdir(exist_ok=True)
-def project(p):return [round((p['lon']-71.35)*6900+20,1),round((51.205-p['lat'])*6350+20,1)]
+data=json.loads((root/'public/maps/astana-source.json').read_text())['features']
 def area(p):return abs(sum(a[0]*b[1]-b[0]*a[1] for a,b in zip(p,p[1:]+p[:1])))/2
-if len(sys.argv)>1:
-    raw=json.load(open(sys.argv[1]));features=[]
-    for e in raw['elements']:
-        t=e.get('tags',{});g=e.get('geometry',[])
-        if not g:continue
-        pts=[project(p) for p in g]
-        if 'building' in t:
-            if area(pts)<6 or t['building'] in ['garage','garages','shed','roof']:continue
-            kind='building'
-        elif t.get('natural')=='water':kind='water'
-        elif t.get('waterway')=='river':kind='river'
-        elif t.get('leisure')=='park':kind='park'
-        elif 'highway' in t:kind='street' if t['highway']=='residential' else 'road'
-        else:continue
-        features.append({'id':e['id'],'kind':kind,'p':pts,'name':t.get('name:ru',t.get('name','')),'levels':min(12,float(t.get('building:levels','4').split(';')[0]) if t.get('building:levels','4').split(';')[0].isdigit() else 4)})
-    source={'attribution':'© OpenStreetMap contributors','license':'https://opendatacommons.org/licenses/odbl/1-0/','snapshot':'2026-09-23','bbox':[71.35,51.09,71.515,51.205],'projection':'x=(lon-71.35)*6900+20; y=(51.205-lat)*6350+20','features':features}
-    (out/'astana-source.json').write_text(json.dumps(source,ensure_ascii=False,separators=(',',':')))
-else:source=json.loads((out/'astana-source.json').read_text())
-features=source['features']
-def path(p,closed=True):return 'M'+'L'.join(f'{x:.1f},{y:.1f}' for x,y in p)+('Z' if closed else '')
-def paths(kind):return ' '.join(path(f['p'],kind not in ['road','street','river']) for f in features if f['kind']==kind)
-s=['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 850"><title>Астана — стилизованная география OpenStreetMap</title><defs><clipPath id="crop"><rect width="1200" height="850"/></clipPath></defs><g clip-path="url(#crop)">']
-s += ['<rect width="1200" height="850" fill="#e8eedb"/>']
-s += [f'<path d="{paths("park")}" fill="#bad29c" stroke="#adc78f" stroke-width="2"/>']
-s += [f'<path d="{paths("water")}" fill="#87c9d7" stroke="#c4e3de" stroke-width="3"/>',f'<path d="{paths("river")}" fill="none" stroke="#91cdd8" stroke-width="10" stroke-linecap="round"/>']
-for k,w in [('street',2),('road',5)]:
-    p=paths(k);s += [f'<path d="{p}" fill="none" stroke="#cbd1bc" stroke-width="{w+2}" stroke-linecap="round" stroke-linejoin="round"/>',f'<path d="{p}" fill="none" stroke="#faf9ec" stroke-width="{w}" stroke-linecap="round" stroke-linejoin="round"/>']
-bs=sorted((f for f in features if f['kind']=='building'),key=lambda f:sum(y for x,y in f['p'])/len(f['p']))
-shadows=[];walls=[];roofs=[[],[],[]]
-for i,f in enumerate(bs):
-    p=f['p'];h=min(12,2+f['levels']*.8)
-    shadows.append(path([[x+3,y+2] for x,y in p]));pass
-    for a,b in zip(p,p[1:]):walls.append(path([a,b,[b[0],round(b[1]-h,1)],[a[0],round(a[1]-h,1)]]))
-    roofs[i%3].append(path([[x,round(y-h,1)] for x,y in p]))
-s.append(f'<path d="{" ".join(shadows)}" fill="#607e76" opacity=".15"/>')
-s.append(f'<path d="{" ".join(walls)}" fill="#92aaa8" stroke="#8ea4a1" stroke-width=".25"/>')
-for roof,color in zip(roofs,['#faf9ee','#d7e7df','#e8e9d8']):s.append(f'<path d="{" ".join(roof)}" fill="{color}" stroke="#a8bbb1" stroke-width=".35"/>')
-s.append('</g></svg>');(out/'astana.svg').write_text(''.join(s))
-print('Map features:',len(features),'buildings:',len(bs),'SVG bytes:',(out/'astana.svg').stat().st_size)
+def simplify(p,epsilon=1.4):
+ if len(p)<3:return p
+ a,b=p[0],p[-1];vx,vy=b[0]-a[0],b[1]-a[1];length=vx*vx+vy*vy
+ distances=[]
+ for x,y in p[1:-1]:
+  t=max(0,min(1,((x-a[0])*vx+(y-a[1])*vy)/length)) if length else 0
+  distances.append(math.hypot(x-a[0]-vx*t,y-a[1]-vy*t))
+ largest=max(distances);i=distances.index(largest)+1
+ return simplify(p[:i+1],epsilon)[:-1]+simplify(p[i:],epsilon) if largest>epsilon else [a,b]
+def path(p,closed=True):return 'M'+'L'.join(f'{x:.1f},{y:.1f}' for x,y in simplify(p))+('Z' if closed else '')
+def draw(d,fill,stroke='none',w=1):return f'<path d="{d}" fill="{fill}" stroke="{stroke}" stroke-width="{w}" stroke-linecap="round" stroke-linejoin="round"/>'
+svg=['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 850"><title>Иллюстрированная Астана: Есиль, основные дороги и условные кварталы</title><defs><clipPath id="crop"><rect width="1200" height="850" rx="24"/></clipPath></defs><g clip-path="url(#crop)"><rect width="1200" height="850" fill="#f0eee6"/>']
+for f in data:
+ if f['kind']=='park' and area(f['p'])>190:svg.append(draw(path(f['p']),'#d7dfc0','#ced8b6',2))
+for f in data:
+ if f['kind']=='water' and area(f['p'])>160:svg.append(draw(path(f['p']),'#a7d5e5','#cae4e8',5))
+for f in data:
+ if f['kind']=='river' and f['name']=='Ишим':svg.append(draw(path(f['p'],False),'none','#a7d5e5',13))
+road_names=['қабанбай','тұран','мәңгілік','тәуелсіздік','республика','сарыарқа','сығанақ','сарайшық','кенесары','абая','кабанбай','туран']
+roads=[f for f in data if f['kind']=='road' and any(s in f['name'].lower() for s in road_names)]
+for color,width in [('#d8d4c9',9),('#fffefa',6)]:
+ for f in roads:svg.append(draw(path(f['p'],False),'none',color,width))
+# Deliberately sparse illustrated neighbourhoods; they do not represent individual addresses.
+clusters=[(190,145,5),(360,125,4),(280,255,4),(630,100,4),(840,145,4),(980,220,4),(810,330,4),(1030,415,4),(930,500,3),(270,405,4),(160,550,3),(330,640,3),(640,580,4),(755,670,4),(920,725,3),(480,640,3)]
+for ci,(cx,cy,count) in enumerate(clusters):
+ for i in range(count):
+  x=cx+(i%3)*31;y=cy+(i//3)*30+(i%3)*6;h=17+((ci+i)%4)*9
+  svg.append(f'<g transform="translate({x} {y})">')
+  svg.append(draw('M-14 4L20 15 36 5 0-5Z','#41587822'))
+  svg.append(draw(f'M-12 0L5 7V{7-h}L-12 {-h}Z','#aebdcc'))
+  svg.append(draw(f'M5 7L25 -3V{-3-h}L5 {7-h}Z',['#d3dfeb','#d6d3c4','#b9cedd'][ci%3]))
+  svg.append(draw(f'M-12 {-h}L8 {-10-h}L25 {-3-h}L5 {7-h}Z','#fdfbf4','#bbc7d0',.6))
+  for level in range(1,int(h/9)):
+   yy=5-level*9;svg.append(draw(f'M9 {yy}l4-2v-4l-4 2zM17 {yy-4}l4-2v-4l-4 2z','#7295b1'))
+  svg.append('</g>')
+ # A few small trees alongside each neighbourhood.
+ for j in range(2):
+  x=cx-22+j*23;y=cy+24
+  svg.append(f'<g transform="translate({x} {y})"><ellipse cy="3" rx="7" ry="3" fill="#40534d20"/><path d="M0 2V-9" stroke="#9a9f83" stroke-width="2"/><path d="M0-24L-7-10 0-5 7-10Z" fill="#94b09a"/><path d="M0-24V-5L7-10Z" fill="#7d9d8b"/></g>')
+svg.append('</g></svg>');out=root/'public/maps/astana.svg';out.write_text(''.join(svg));print(f'Simplified map: {len(roads)} road segments, {sum(c[2] for c in clusters)} illustrative buildings, {out.stat().st_size} bytes')
