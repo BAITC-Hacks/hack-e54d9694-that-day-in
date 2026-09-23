@@ -31,10 +31,8 @@ end
 local ids = redis.call('ZREVRANGE', KEYS[2], ARGV[1], tonumber(ARGV[1]) + tonumber(ARGV[2]) - 1, 'WITHSCORES')
 local rows = {}
 for i = 1, #ids, 2 do
-  local row = cjson.decode(redis.call('HGET', KEYS[1], ids[i]))
-  row.rank = redis.call('ZCOUNT', KEYS[2], '(' .. ids[i+1], '+inf') + 1
-  row.is_winner = row.rank == 1
-  table.insert(rows, row)
+  local rank = redis.call('ZCOUNT', KEYS[2], '(' .. ids[i+1], '+inf') + 1
+  table.insert(rows, {entry=redis.call('HGET', KEYS[1], ids[i]), rank=rank, is_winner=rank == 1})
 end
 return cjson.encode({total=total, best_score=bestScore, winner_count=winners, entries=rows})`;
 
@@ -69,8 +67,14 @@ export class RedisLeaderboardStore implements LeaderboardStore {
     const value = await this.eval(PAGE_SCRIPT, version, [String(offset), String(limit)]);
     if (typeof value !== "string") throw new Error("Invalid stored page");
     const parsed = JSON.parse(value);
+    // Upstash's Lua JSON encoder can omit cjson.null on an empty board.
+    if (parsed.total === 0 && parsed.best_score === undefined) parsed.best_score = null;
     // Redis Lua encodes an empty table as {}, not [].
     if (parsed.entries && !Array.isArray(parsed.entries) && Object.keys(parsed.entries).length === 0) parsed.entries = [];
+    // Keep stored JSON opaque in Lua: its encoder can drop nested null fields,
+    // notably district_id=null on city-wide measures.
+    const rows = z.array(z.object({ entry: z.string(), rank: z.number().int().positive(), is_winner: z.boolean() })).parse(parsed.entries);
+    parsed.entries = rows.map(row => ({ ...JSON.parse(row.entry), rank: row.rank, is_winner: row.is_winner }));
     const page = PageSchema.parse(parsed);
     if (page.entries.some(e => e.scenario.dataset_version !== version)) throw new Error("Mismatched dataset");
     return page;
@@ -78,8 +82,11 @@ export class RedisLeaderboardStore implements LeaderboardStore {
 }
 
 export function configuredLeaderboardStore(): LeaderboardStore {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  // Vercel Marketplace provisions KV_* names; direct Upstash uses UPSTASH_*.
+  // Choose an entire pair to avoid mixing credentials from different databases.
+  const direct = process.env.UPSTASH_REDIS_REST_URL || process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url = direct ? process.env.UPSTASH_REDIS_REST_URL : process.env.KV_REST_API_URL;
+  const token = direct ? process.env.UPSTASH_REDIS_REST_TOKEN : process.env.KV_REST_API_TOKEN;
   if (!url || !token) throw new Error("Leaderboard storage not configured");
   return new RedisLeaderboardStore(url, token);
 }

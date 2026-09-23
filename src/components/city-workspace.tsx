@@ -1,20 +1,14 @@
 "use client";
-
 import { useRef, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowDownRight,
-  ArrowRight,
   ArrowUpRight,
+  ArrowRight,
   Building2,
   BusFront,
   Check,
-  ChevronDown,
   CircleHelp,
   Clock3,
-  Compass,
-  Globe2,
-  Landmark,
   Leaf,
   MapPin,
   Plus,
@@ -22,16 +16,21 @@ import {
   Sparkles,
   UsersRound,
   Wallet,
-  Waves,
   X,
+  ChevronDown,
+  ChartNoAxesCombined,
+  FileText,
+  CloudSun,
 } from "lucide-react";
 import { dataset } from "@/data";
 import { validateSelections } from "@/lib/simulation";
 import { useScenario } from "@/features/simulator/use-scenario";
 import { useReport } from "@/features/simulator/use-report";
+import { decisionsKey } from "@/features/scenario-tools/client";
+import ScenarioTools, { type ToolName } from "./scenario-tools";
 import ReportExplanation from "./report-explanation";
 import CityMap from "./city-map";
-import type { Direction } from "@/shared/contracts";
+import type { Decision, Direction } from "@/shared/contracts";
 
 const categoryIcons = {
   transport: BusFront,
@@ -40,276 +39,189 @@ const categoryIcons = {
   safety: ShieldCheck,
   services: Building2,
 };
-const indicatorLabels: Record<string, string> = {
+const labels: Record<string, string> = {
   T1: "Разгрузка дорог",
   T2: "Общественный транспорт",
   E1: "Озеленение",
-  E2: "Качество воздуха",
+  E2: "Чистота воздуха",
   S1: "Школы и детские сады",
-  S2: "Первичная медицина",
+  S2: "Доступная медицина",
   B1: "Безопасность улиц",
   B2: "Безопасность движения",
   C1: "Надёжность ЖКХ",
   C2: "Обращения жителей",
 };
-const districtHints: Record<string, string> = {
-  nura: "Район возможностей",
-  esil: "Деловое сердце города",
-  almaty: "Город с историей",
-  saryarka: "Зелёное будущее",
-  baikonur: "Баланс городской жизни",
-};
-type DirectionId = Direction;
-
+const format = (n: number) => n.toFixed(2).replace(".", ",");
+const tabs = [
+  { id: "result", title: "Результат", icon: ChartNoAxesCombined },
+  { id: "recommendations", title: "Рекомендации", icon: Sparkles },
+  { id: "events", title: "События", icon: CloudSun },
+  { id: "comparison", title: "Сравнение", icon: UsersRound },
+  { id: "presentation", title: "Презентация", icon: FileText },
+] as const;
+export function Shanyrak() {
+  return (
+    <svg
+      width="38"
+      height="38"
+      viewBox="0 0 40 40"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle cx="20" cy="20" r="17" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="20" cy="20" r="11" stroke="currentColor" />
+      <path
+        d="M3 20h34M20 3v34M8 8l24 24M8 32L32 8M9 11q11 18 22 0M9 29q11-18 22 0"
+        stroke="currentColor"
+        strokeWidth="1.3"
+      />
+    </svg>
+  );
+}
 export default function CityWorkspace() {
-  const [selected, setSelected] = useState("nura");
-  const [direction, setDirection] = useState<DirectionId | "all">("all");
-  const [forecast, setForecast] = useState(false);
   const scenario = useScenario();
   const report = useReport();
-  const { simulation, decisions } = scenario;
-  const summary = forecast ? simulation.after : simulation.before;
-  const resultDialog = useRef<HTMLDialogElement>(null);
-  const catalogDialog = useRef<HTMLDialogElement>(null);
-  const rulesDialog = useRef<HTMLDialogElement>(null);
+  const { decisions, simulation } = scenario;
+  const [selected, setSelected] = useState("nura");
+  const [direction, setDirection] = useState<Direction | "all">("all");
+  const [forecast, setForecast] = useState(false);
+  const [tab, setTab] = useState<ToolName | "result">("result");
+  const [editing, setEditing] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
+  const catalog = useRef<HTMLDialogElement>(null),
+    rules = useRef<HTMLDialogElement>(null),
+    about = useRef<HTMLDialogElement>(null);
+  const analysis = useRef<HTMLElement>(null);
   const district = dataset.districts.find((d) => d.id === selected)!;
+  const districtState = simulation.districts.find(
+    (d) => d.district_id === selected,
+  )!;
+  const values = forecast ? districtState.after : districtState.before;
+  const summary = forecast ? simulation.after : simulation.before;
   const measures = dataset.measures.filter(
     (m) => direction === "all" || m.direction_id === direction,
   );
-  const indicators = dataset.indicators.filter(
-    (i) => direction === "all" || i.direction_id === direction,
-  );
-  const openCatalog = () => catalogDialog.current?.showModal();
-  const currentDistrict = simulation.districts.find(
-    (d) => d.district_id === selected,
-  )!;
-  const districtValues = forecast
-    ? currentDistrict.after
-    : currentDistrict.before;
-  const format = (value: number) => value.toFixed(2).replace(".", ",");
-
+  function replace(next: Decision[]) {
+    scenario.replace(next);
+    report.reset();
+    setNotice("");
+    setForecast(true);
+  }
+  function openCatalog(id?: Direction | "all", measureId?: string) {
+    setEditing(measureId ?? null);
+    setDirection(id ?? "all");
+    catalog.current?.showModal();
+  }
+  function evaluate() {
+    setTab("result");
+    void report.run(decisions);
+    analysis.current?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+      block: "start",
+    });
+  }
   return (
     <div className="application">
-      <header className="app-header">
-        <Link className="brand" href="/" aria-label="Аким на 5 часов — главная">
-          <span className="brand-mark">
-            <Landmark size={23} strokeWidth={1.6} />
-          </span>
+      <header className="site-header">
+        <Link href="/" className="brand" aria-label="Аким на 5 часов — главная">
+          <Shanyrak />
           <span>
-            аким<span className="brand-sub">на 5 часов</span>
+            АКИМ<small>НА 5 ЧАСОВ</small>
           </span>
         </Link>
-        <nav className="header-nav" aria-label="Основная навигация">
-          <button className="nav-active">
-            <Compass size={16} /> Город и решения
-          </button>
-          <button onClick={openCatalog}>
-            Мероприятия <span>14</span>
-          </button>
+        <nav aria-label="Основная навигация">
+          <a href="#city">Город</a>
+          <a href="#scenario">
+            Мой сценарий{" "}
+            <span className="count-pill">{decisions.length}/5</span>
+          </a>
+          <a href="#analysis">Анализ и сравнение</a>
         </nav>
-        <div className="header-actions">
-          <span className="simulation-label">
-            <i /> Симулятор города
+        <div className="header-end">
+          <span className="header-budget">
+            <Wallet size={16} />
+            <span>
+              Бюджет <strong>{simulation.budget.remaining}</strong>
+              <small> / 100</small>
+            </span>
           </span>
           <button
             className="icon-button"
-            aria-label="Правила игры"
-            onClick={() => rulesDialog.current?.showModal()}
+            aria-label="Правила симулятора"
+            onClick={() => rules.current?.showModal()}
           >
-            <CircleHelp size={20} />
+            <CircleHelp size={21} />
           </button>
-          <span className="avatar">АК</span>
         </div>
       </header>
-
-      <main className="workspace">
-        <section className="page-heading">
+      <main>
+        <section className="intro section-width">
           <div>
-            <div className="eyebrow">ВАШ ГОРОД. ВАШИ РЕШЕНИЯ.</div>
+            <p className="section-kicker">
+              <span />
+              ГОРОД ВАШИХ РЕШЕНИЙ
+            </p>
             <h1>
-              Сегодня Астана в ваших руках<span>.</span>
+              Решения сегодня.
+              <br />
+              <em>Астана завтра.</em>
             </h1>
-            <p>Пять решений, один бюджет — тысячи возможностей для города.</p>
+            <p className="intro-copy">
+              Транспорт, экология, социальная инфраструктура, безопасность и
+              сервисы.
+              <br className="desktop-break" /> Выберите приоритеты и оцените,
+              как изменится качество жизни города.
+            </p>
           </div>
-          <button
-            className="text-link"
-            onClick={() => rulesDialog.current?.showModal()}
-          >
-            Как это работает <ArrowUpRight size={16} />
-          </button>
+          <div className="intro-aside">
+            <span className="intro-number">05</span>
+            <span>
+              направлений.
+              <br />
+              Один целостный взгляд.
+            </span>
+            <div className="ornament-band" aria-hidden="true" />
+          </div>
         </section>
-
-        <div className="workspace-grid">
-          <aside className="plan-sidebar" aria-label="План решений">
-            <section className="budget-card">
-              <div className="budget-label">
-                <Wallet size={17} /> Городской бюджет <span>01</span>
-              </div>
-              <div className="budget-value">
-                {simulation.budget.remaining}
-                <span> / {simulation.budget.initial}</span>
-              </div>
-              <div className="budget-caption">условных единиц доступно</div>
-              <div className="budget-track">
-                <span
-                  style={{
-                    width: `${(simulation.budget.remaining / simulation.budget.initial) * 100}%`,
-                  }}
-                />
-              </div>
-              <div className="budget-foot">
-                <span>
-                  Потрачено <strong>{simulation.budget.spent}</strong>
-                </span>
-                <span>
-                  Осталось <strong>{simulation.budget.remaining}</strong>
-                </span>
-              </div>
-            </section>
-            <section className="decision-plan">
-              <div className="section-title">
-                <h2>Ваш план</h2>
-                <span className="count-pill" aria-live="polite">
-                  {decisions.length} / 5
-                </span>
-              </div>
-              <p className="small-muted">Каждое решение меняет город.</p>
-              <ol className="decision-list">
-                {Array.from({ length: 5 }, (_, i) => {
-                  const decision = decisions[i];
-                  const measure = dataset.measures.find(
-                    (m) => m.id === decision?.measure_id,
-                  );
-                  const target = dataset.districts.find(
-                    (d) => d.id === decision?.district_id,
-                  );
-                  return (
-                    <li key={i} className={measure ? "decision-filled" : ""}>
-                      <span className="step-number">0{i + 1}</span>
-                      <div>
-                        <strong>
-                          {measure?.name ??
-                            (i === 0
-                              ? "Первое решение — за вами"
-                              : "Новое решение")}
-                        </strong>
-                        <span>
-                          {measure
-                            ? `${target?.name ?? "Весь город"} · ${measure.cost} ед.`
-                            : i === 0
-                              ? "Изучите районы и мероприятия"
-                              : "Место для вашего выбора"}
-                        </span>
-                      </div>
-                      {measure ? (
-                        <button
-                          aria-label={`Удалить ${measure.id}`}
-                          onClick={() => scenario.remove(measure.id)}
-                        >
-                          <X size={14} />
-                        </button>
-                      ) : i === decisions.length ? (
-                        <button
-                          aria-label="Изучить мероприятия для первого решения"
-                          onClick={openCatalog}
-                        >
-                          <Plus size={16} />
-                        </button>
-                      ) : (
-                        <span className="step-placeholder">+</span>
-                      )}
-                    </li>
-                  );
-                })}
-              </ol>
-              <div className="plan-note">
-                <Leaf size={17} />
-                <p>
-                  Сильный город начинается
-                  <br />с внимания к каждому району.
-                </p>
-              </div>
+        <section
+          id="city"
+          className="city-section section-width"
+          aria-label="Карта и показатели районов"
+        >
+          <div className="map-toolbar">
+            <div className="map-heading">
+              <MapPin size={19} />
+              <strong>Астана</strong>
+              <span>Карта сценария</span>
+            </div>
+            <div className="view-toggle" aria-label="Состояние города">
               <button
-                className="analysis-button"
-                disabled={!scenario.valid}
-                onClick={() => {
-                  resultDialog.current?.showModal();
-                  void report.run(decisions);
-                }}
+                aria-pressed={!forecast}
+                className={!forecast ? "active" : ""}
+                onClick={() => setForecast(false)}
               >
-                <Sparkles size={16} /> Оценить сценарий <ArrowRight size={17} />
+                До решений
               </button>
-              <p className="stage-note">
-                {scenario.notice ||
-                  (scenario.valid
-                    ? "План готов. Посмотрите результат решений."
-                    : "Выберите пять разных мероприятий.")}
-              </p>
-              {decisions.length > 0 ? (
-                <button
-                  className="clear-plan"
-                  onClick={() => scenario.replace([])}
-                >
-                  Очистить план
-                </button>
-              ) : null}
-            </section>
-            <div className="horizon-card">
-              <Clock3 size={20} />
-              <div>
-                <strong>Думаем на два года вперёд</strong>
-                <span>Горизонт моделирования · 8 кварталов</span>
-              </div>
-            </div>
-          </aside>
-
-          <section className="city-panel" aria-label="Исследование города">
-            <div className="city-toolbar">
-              <div className="city-title">
-                <span className="live-dot" />
-                <h2>Панорама города</h2>
-              </div>
-              <div className="view-toggle">
-                <button
-                  className={!forecast ? "active" : ""}
-                  aria-pressed={!forecast}
-                  onClick={() => setForecast(false)}
-                >
-                  До решений
-                </button>
-                <button
-                  className={forecast ? "active" : ""}
-                  aria-pressed={forecast}
-                  onClick={() => setForecast(true)}
-                >
-                  Прогноз
-                </button>
-              </div>
-            </div>
-            <div className="category-filters" aria-label="Направления">
               <button
-                className={direction === "all" ? "active" : ""}
-                onClick={() => setDirection("all")}
+                aria-pressed={forecast}
+                className={forecast ? "active" : ""}
+                onClick={() => setForecast(true)}
               >
-                <Globe2 size={15} /> Всё
+                После решений
               </button>
-              {dataset.directions.map((d) => {
-                const Icon = categoryIcons[d.id as DirectionId];
-                return (
-                  <button
-                    key={d.id}
-                    className={direction === d.id ? "active" : ""}
-                    onClick={() => setDirection(d.id as DirectionId)}
-                  >
-                    <Icon size={15} />
-                    {d.name}
-                  </button>
-                );
-              })}
             </div>
+            <span className="horizon">
+              <Clock3 size={14} />
+              Горизонт — 2 года
+            </span>
+          </div>
+          <div className="map-layout">
             <CityMap
               selected={selected}
               onSelect={setSelected}
+              decisions={decisions}
               changes={
                 forecast
                   ? Object.fromEntries(
@@ -322,216 +234,553 @@ export default function CityWorkspace() {
                   : undefined
               }
             />
-            <div className="city-insight">
-              <span className="insight-icon">
-                <MapPin size={19} />
-              </span>
-              <div>
-                <strong>У каждого района — своя история</strong>
-                <p>
-                  Нажмите на район, чтобы увидеть его показатели и точки роста.
-                </p>
-              </div>
-              <span className="mini-tag">ИССЛЕДУЙТЕ</span>
-            </div>
-            <section
-              className="city-stats"
-              aria-label={
-                forecast
-                  ? "Прогнозные показатели города"
-                  : "Исходные показатели города"
-              }
+            <aside
+              className="district-card"
+              aria-label={`Район ${district.name}: показатели`}
             >
-              <div>
-                <span>
-                  Качество жизни города <CircleHelp size={12} />
-                </span>
+              <div className="district-overline">
+                <span>ВЫБРАННЫЙ РАЙОН</span>
+                <MapPin size={14} />
+              </div>
+              <h2>{district.name}</h2>
+              <p>{district.profile}</p>
+              <div className="district-index">
+                <span>Индекс района</span>
                 <strong>
-                  {forecast && !scenario.valid ? "—" : format(summary.score)}
-                  <small>Score</small>
+                  {format(summary.district_scores[district.id])}
+                  <small>/100</small>
                 </strong>
-                <p>
-                  {forecast
-                    ? scenario.valid
-                      ? "Расчёт по выбранным решениям"
-                      : `Для Score нужно ещё ${5 - decisions.length} решений`
-                    : "Исходная оценка"}
-                </p>
+                {forecast ? (
+                  <b>
+                    {simulation.after.district_scores[district.id] >=
+                    simulation.before.district_scores[district.id]
+                      ? "+"
+                      : ""}
+                    {format(
+                      simulation.after.district_scores[district.id] -
+                        simulation.before.district_scores[district.id],
+                    )}{" "}
+                    к исходному
+                  </b>
+                ) : null}
               </div>
-              <div>
-                <span>Средний индекс районов</span>
-                <strong>
-                  {format(summary.city_average)}
-                  <small>/ 100</small>
-                </strong>
-                <p>С учётом доли населения</p>
-              </div>
-              <div>
-                <span>Требуют внимания</span>
-                <strong className="warm-number">
-                  {summary.critical_count}
-                  <small>показателя</small>
-                </strong>
-                <p>Значения ниже 40</p>
-              </div>
-            </section>
-          </section>
-
-          <aside
-            className="district-sidebar"
-            aria-label={`Показатели района ${district.name}`}
-          >
-            <div className="district-cover">
-              <div className="district-cover-grid" />
-              <span className="district-type">
-                <MapPin size={12} /> ВЫБРАННЫЙ РАЙОН
-              </span>
-              <Building2 className="cover-building b1" />
-              <Building2 className="cover-building b2" />
-              <Landmark className="cover-building b3" />
-              <div className="district-cover-name">{district.name}</div>
-              <span className="cover-caption">
-                {districtHints[district.id]}
-              </span>
-            </div>
-            <div className="district-details">
-              <div className="district-heading">
-                <h2>{district.name}</h2>
-                <span className="population-chip">
-                  <UsersRound size={13} />{" "}
-                  {Math.round(district.population_share * 100)}% жителей
-                </span>
-              </div>
-              <p className="district-profile">{district.profile}</p>
-              <div className="district-score">
-                <div>
-                  <span>Индекс района</span>
-                  <strong>
-                    {format(summary.district_scores[district.id])}
-                    <small>/ 100</small>
-                  </strong>
-                </div>
-                <div className="score-status">
-                  <span className="status-dot" />
-                  {summary.district_scores[district.id] < 50
-                    ? "Есть потенциал роста"
-                    : "Есть точки улучшения"}
-                </div>
-              </div>
-              <div className="metric-heading">
-                <h3>Показатели района</h3>
-                <span>0 — 100</span>
-              </div>
-              <div className="metric-list">
-                {indicators.map((indicator) => {
-                  const value = districtValues[indicator.code];
-                  const critical = value < dataset.scoring.critical_threshold;
-                  return (
-                    <div
-                      className={`metric-row ${critical ? "critical" : ""}`}
-                      key={indicator.code}
-                    >
+              <button
+                className="primary-button"
+                onClick={() => openCatalog()}
+                disabled={!scenario.loaded}
+              >
+                Выбрать мероприятие <ArrowUpRight size={17} />
+              </button>
+              <details className="district-more">
+                <summary>
+                  Показатели района <ChevronDown size={14} />
+                </summary>
+                <div className="metric-list">
+                  {dataset.indicators.map((i) => (
+                    <div className="metric-row" key={i.code}>
+                      <span>{labels[i.code]}</span>
+                      <strong>
+                        {Number(values[i.code].toFixed(2))}
+                        {forecast ? (
+                          <small>
+                            {" "}
+                            ({districtState.delta[i.code] > 0 ? "+" : ""}
+                            {Number(districtState.delta[i.code].toFixed(2))})
+                          </small>
+                        ) : null}
+                      </strong>
                       <div>
-                        <span>{indicatorLabels[indicator.code]}</span>
-                        <strong>
-                          {Number(value.toFixed(2))}
-                          {critical ? <ArrowDownRight size={12} /> : null}
-                        </strong>
-                      </div>
-                      <div className="metric-track">
-                        <span style={{ width: `${value}%` }} />
+                        <i style={{ width: `${values[i.code]}%` }} />
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+              </details>
+            </aside>
+          </div>
+          <div className="map-caption">
+            <span>
+              <i />
+              Выберите район на карте или в списке
+            </span>
+            <nav aria-label="Выбор района">
+              {dataset.districts.map((d) => (
+                <button
+                  aria-pressed={selected === d.id}
+                  key={d.id}
+                  className={selected === d.id ? "selected" : ""}
+                  onClick={() => setSelected(d.id)}
+                >
+                  {d.name}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </section>
+        <section id="scenario" className="scenario-section section-width">
+          <div className="section-heading">
+            <div>
+              <p className="section-kicker">01 / ПЛАН ИЗМЕНЕНИЙ</p>
+              <h2>Ваш сценарий</h2>
+              <p>Пять мероприятий. Выбор района и порядка — за вами.</p>
+            </div>
+            <div className="budget-summary">
+              <Wallet size={23} />
+              <div>
+                <span>Доступный бюджет</span>
+                <strong className="budget-value">
+                  {simulation.budget.remaining}
+                  <small> / 100</small>
+                </strong>
               </div>
-              <button className="district-action" onClick={openCatalog}>
-                Изучить мероприятия <ArrowUpRight size={17} />
-              </button>
-              <p className="district-footnote">
-                Районные меры действуют здесь,
+              <div className="budget-meter" aria-hidden="true">
+                <i style={{ height: `${simulation.budget.remaining}%` }} />
+              </div>
+            </div>
+          </div>
+          <div className="direction-strip" aria-label="Пять направлений">
+            {dataset.directions.map((d) => {
+              const Icon = categoryIcons[d.id];
+              const count = decisions.filter(
+                (v) =>
+                  dataset.measures.find((m) => m.id === v.measure_id)
+                    ?.direction_id === d.id,
+              ).length;
+              return (
+                <button
+                  key={d.id}
+                  disabled={!scenario.loaded}
+                  onClick={() => openCatalog(d.id)}
+                >
+                  <Icon size={20} />
+                  <span>{d.name}</span>
+                  <small>{count}/2</small>
+                </button>
+              );
+            })}
+          </div>
+          <div className="scenario-layout">
+            <ol className="decisions-timeline">
+              {Array.from({ length: 5 }, (_, i) => {
+                const d = decisions[i];
+                const measure = d
+                  ? dataset.measures.find((m) => m.id === d.measure_id)!
+                  : null;
+                const Icon = measure
+                  ? categoryIcons[measure.direction_id]
+                  : Plus;
+                return (
+                  <li key={i} className={measure ? "filled" : ""}>
+                    <span className="timeline-number">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="timeline-dot" />
+                    <div className="decision-card">
+                      {measure ? (
+                        <span className="decision-visual" aria-hidden="true">
+                          <Icon size={27} />
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="decision-visual"
+                          aria-label={`Добавить мероприятие в слот ${i + 1}`}
+                          disabled={!scenario.loaded}
+                          onClick={() => openCatalog()}
+                        >
+                          <Plus size={27} aria-hidden="true" />
+                        </button>
+                      )}
+                      {measure && d ? (
+                        <>
+                          <div className="decision-copy">
+                            <span>
+                              {
+                                dataset.directions.find(
+                                  (v) => v.id === measure.direction_id,
+                                )?.name
+                              }{" "}
+                              ·{" "}
+                              {d.district_id
+                                ? dataset.districts.find(
+                                    (r) => r.id === d.district_id,
+                                  )?.name
+                                : "Весь город"}
+                            </span>
+                            <h3>{measure.name}</h3>
+                            <button
+                              className="text-button"
+                              onClick={() => {
+                                if (d.district_id) setSelected(d.district_id);
+                                openCatalog(measure.direction_id, d.measure_id);
+                              }}
+                            >
+                              Изменить
+                            </button>
+                          </div>
+                          <strong className="decision-cost">
+                            {measure.cost}
+                            <small>ед.</small>
+                          </strong>
+                          <button
+                            className="icon-button"
+                            aria-label={`Удалить ${d.measure_id}`}
+                            onClick={() =>
+                              replace(
+                                decisions.filter(
+                                  (v) => v.measure_id !== d.measure_id,
+                                ),
+                              )
+                            }
+                          >
+                            <X size={17} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            className="empty-decision"
+                            disabled={!scenario.loaded}
+                            onClick={() => openCatalog()}
+                          >
+                            <strong>Добавить мероприятие</strong>
+                            <span>Выберите направление и район</span>
+                          </button>
+                          <ArrowUpRight size={20} />
+                        </>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+            <aside className="scenario-summary">
+              <p className="section-kicker">СБАЛАНСИРОВАННЫЙ ПОДХОД</p>
+              <h3>
+                Каждое решение
                 <br />
-                городские — во всех пяти районах.
+                влияет на город.
+              </h3>
+              <p>
+                Учитывайте не только общий рост, но и состояние районов, которым
+                нужна поддержка.
+              </p>
+              <div>
+                <span>Выбрано мероприятий</span>
+                <strong className="decision-count">
+                  {decisions.length} / 5
+                </strong>
+              </div>
+              <div>
+                <span>Потрачено</span>
+                <strong>{simulation.budget.spent} ед.</strong>
+              </div>
+              <button
+                className="primary-button"
+                disabled={!scenario.valid}
+                onClick={evaluate}
+              >
+                Рассчитать сценарий <ArrowRight size={17} />
+              </button>
+              <p className="small-muted">
+                {scenario.valid
+                  ? "Получите Score и AI-анализ сильных сторон, рисков и последствий."
+                  : "Для расчёта нужны пять допустимых мероприятий. Не более двух одного направления."}
+              </p>
+              {decisions.length ? (
+                <button className="text-button" onClick={() => replace([])}>
+                  Очистить сценарий
+                </button>
+              ) : null}
+            </aside>
+          </div>
+          <p role="status" className="inline-status">
+            {scenario.notice || notice}
+          </p>
+        </section>
+        <section
+          id="analysis"
+          ref={analysis}
+          className="analysis-section section-width"
+        >
+          <div className="section-heading">
+            <div>
+              <p className="section-kicker">02 / ПОСЛЕДСТВИЯ И АЛЬТЕРНАТИВЫ</p>
+              <h2>От решений к результатам</h2>
+              <p>
+                Проверьте эффект, сравните варианты и подготовьте обоснование.
               </p>
             </div>
-          </aside>
-        </div>
-        <footer className="app-footer">
-          <span>
-            <Waves size={15} /> ASTANA URBAN LAB{" "}
-            <span className="footer-divider">/</span> Пространство городских
-            решений
-          </span>
-          <span>
-            Учебная симуляция <i /> Данные синтетические
-          </span>
-        </footer>
+          </div>
+          <div
+            className="analysis-tabs"
+            role="tablist"
+            aria-label="Инструменты анализа"
+          >
+            {tabs.map((t) => (
+              <button
+                role="tab"
+                id={`tab-${t.id}`}
+                aria-controls={`panel-${t.id}`}
+                aria-selected={tab === t.id}
+                tabIndex={tab === t.id ? 0 : -1}
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                onKeyDown={(e) => {
+                  const idx = tabs.findIndex((v) => v.id === tab);
+                  if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                    e.preventDefault();
+                    const next =
+                      tabs[
+                        (idx + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) %
+                          tabs.length
+                      ];
+                    setTab(next.id);
+                    document.getElementById(`tab-${next.id}`)?.focus();
+                  }
+                }}
+              >
+                <t.icon size={18} />
+                {t.title}
+              </button>
+            ))}
+          </div>
+          <div
+            role="tabpanel"
+            id={`panel-${tab}`}
+            aria-labelledby={`tab-${tab}`}
+            className="analysis-panel"
+          >
+            {tab === "result" ? (
+              scenario.valid ? (
+                <>
+                  <div className="result-grid">
+                    <div className="result-score">
+                      <span>Astana Quality of Life Score</span>
+                      <strong>{format(simulation.after.score)}</strong>
+                      <span>
+                        {simulation.score_delta >= 0 ? "+" : ""}
+                        {format(simulation.score_delta)} к исходному{" "}
+                        {format(simulation.before.score)}
+                      </span>
+                    </div>
+                    <div className="result-context">
+                      <h3>Как изменится качество жизни</h3>
+                      <p>
+                        Расчёт учитывает средний индекс города, слабейший район
+                        и критические показатели. AI объясняет результат и не
+                        изменяет баллы.
+                      </p>
+                      <div className="result-breakdown">
+                        <div>
+                          <span>Средний индекс</span>
+                          <strong>
+                            {format(simulation.after.city_average)}
+                          </strong>
+                        </div>
+                        <div>
+                          <span>Слабейший район</span>
+                          <strong>
+                            {format(simulation.after.minimum_district_score)}
+                          </strong>
+                        </div>
+                        <div>
+                          <span>Критических значений</span>
+                          <strong>{simulation.after.critical_count}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="district-comparison">
+                    <h3>Изменения по районам</h3>
+                    {dataset.districts.map((d) => (
+                      <div key={d.id}>
+                        <span>{d.name}</span>
+                        <div className="comparison-bars">
+                          <i
+                            style={{
+                              width: `${simulation.before.district_scores[d.id]}%`,
+                            }}
+                          />
+                          <b
+                            style={{
+                              width: `${simulation.after.district_scores[d.id]}%`,
+                            }}
+                          />
+                        </div>
+                        <strong>
+                          {format(simulation.before.district_scores[d.id])} →{" "}
+                          {format(simulation.after.district_scores[d.id])}
+                        </strong>
+                      </div>
+                    ))}
+                    <small>Серый — до решений · синий — после решений</small>
+                  </div>
+                  {report.status === "idle" ? (
+                    <button
+                      className="primary-button"
+                      onClick={() => void report.run(decisions)}
+                    >
+                      <Sparkles size={17} />
+                      Получить AI-анализ
+                    </button>
+                  ) : null}
+                  <ReportExplanation
+                    report={report}
+                    onRetry={() => void report.run(decisions)}
+                  />
+                </>
+              ) : (
+                <div className="empty-analysis">
+                  <ChartNoAxesCombined size={32} />
+                  <h3>Сценарий ещё не завершён</h3>
+                  <p>
+                    Выберите пять мероприятий, чтобы рассчитать итоговую оценку
+                    и получить AI-анализ.
+                  </p>
+                  <a href="#scenario" className="secondary-button">
+                    К выбору мероприятий <ArrowUpRight size={16} />
+                  </a>
+                </div>
+              )
+            ) : (
+              <ScenarioTools
+                key={`${tab}:${decisionsKey(decisions)}`}
+                tool={tab}
+                decisions={decisions}
+                valid={scenario.valid}
+                onApply={(next) => {
+                  replace(next);
+                  setNotice(
+                    "Рекомендация применена. Показатели пересчитаны, прежний AI-отчёт сброшен.",
+                  );
+                  setTab("result");
+                }}
+              />
+            )}
+          </div>
+        </section>
       </main>
-
-      <dialog ref={catalogDialog} className="catalog-dialog">
+      <footer className="site-footer">
+        <div className="footer-ornament" aria-hidden="true">
+          <Shanyrak />
+        </div>
+        <div className="footer-content section-width">
+          <div className="footer-title">
+            АСТАНА.
+            <br />
+            <span>ГОРОД РЕШЕНИЙ.</span>
+            <p>Аким на 5 часов — симулятор городского управления.</p>
+          </div>
+          <div className="footer-column">
+            <strong>Симулятор</strong>
+            <a href="#city">Карта районов</a>
+            <a href="#scenario">Мой сценарий</a>
+            <a href="#analysis">Анализ и сравнение</a>
+          </div>
+          <div className="footer-column">
+            <strong>О проекте</strong>
+            <button onClick={() => about.current?.showModal()}>
+              Идея и команда
+            </button>
+            <button onClick={() => rules.current?.showModal()}>
+              Правила и методика
+            </button>
+            <a href="/maps/astana-source.json" download>
+              Источник географии
+            </a>
+          </div>
+        </div>
+        <div className="footer-bottom section-width">
+          <span>
+            Учебная модель · данные синтетические · границы районов условные
+          </span>
+          <span>АСТАНА · 2026</span>
+        </div>
+      </footer>
+      <dialog ref={catalog} className="catalog-dialog">
         <div className="dialog-heading">
           <div>
-            <div className="eyebrow">КАТАЛОГ ГОРОДСКИХ ИЗМЕНЕНИЙ</div>
-            <h2>Решения для лучшего города</h2>
-            <p>{district.name} · изучите эффект, стоимость и охват</p>
+            <p className="section-kicker">
+              {editing ? "ИЗМЕНЕНИЕ МЕРОПРИЯТИЯ" : "КАТАЛОГ РЕШЕНИЙ"}
+            </p>
+            <h2>{editing ? "Заменить мероприятие" : "Выберите мероприятие"}</h2>
+            <p>
+              Осталось {simulation.budget.remaining} ед. · {decisions.length} из
+              5 выбрано
+            </p>
           </div>
           <button
             className="icon-button"
             aria-label="Закрыть каталог"
-            onClick={() => catalogDialog.current?.close()}
+            onClick={() => catalog.current?.close()}
           >
             <X />
           </button>
         </div>
-        <div className="catalog-filter">
-          <label htmlFor="direction-filter">Направление</label>
-          <select
-            id="direction-filter"
-            value={direction}
-            onChange={(event) =>
-              setDirection(event.target.value as DirectionId | "all")
-            }
-          >
-            <option value="all">Все направления</option>
-            {dataset.directions.map((d) => (
-              <option value={d.id} key={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
-          <ChevronDown size={15} />
-        </div>
-        <div className="district-picker">
-          <label htmlFor="target-district">
-            Район для районных мероприятий
+        <div className="catalog-controls">
+          <label>
+            Район
+            <select
+              aria-label="Район мероприятия"
+              value={selected}
+              onChange={(e) => setSelected(e.target.value)}
+            >
+              {dataset.districts.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
           </label>
-          <select
-            id="target-district"
-            value={selected}
-            onChange={(event) => setSelected(event.target.value)}
-          >
-            {dataset.districts.map((d) => (
-              <option value={d.id} key={d.id}>
+          <p>
+            Районные меры применяются здесь.
+            <br />
+            Городские — во всех пяти районах.
+          </p>
+        </div>
+        <div className="category-options">
+          {dataset.directions.map((d) => {
+            const Icon = categoryIcons[d.id];
+            return (
+              <button
+                key={d.id}
+                aria-pressed={direction === d.id}
+                onClick={() => setDirection(d.id)}
+              >
+                <Icon size={18} />
                 {d.name}
-              </option>
-            ))}
-          </select>
-          <span>
-            В плане {decisions.length}/5 · осталось{" "}
-            {simulation.budget.remaining} ед.
-          </span>
+              </button>
+            );
+          })}
+          <button
+            aria-pressed={direction === "all"}
+            onClick={() => setDirection("all")}
+          >
+            Все решения
+          </button>
         </div>
         <div className="catalog-grid">
-          {measures.map((measure) => {
-            const Icon = categoryIcons[measure.direction_id as DirectionId];
-            const added = decisions.some((d) => d.measure_id === measure.id);
-            const next = [
-              ...decisions,
-              {
-                measure_id: measure.id,
-                district_id: measure.scope === "city" ? null : selected,
-              },
-            ];
+          {measures.map((m) => {
+            const Icon = categoryIcons[m.direction_id];
+            const added =
+              decisions.some((d) => d.measure_id === m.id) && editing !== m.id;
+            const next = editing
+              ? decisions.map((d) =>
+                  d.measure_id === editing
+                    ? {
+                        measure_id: m.id,
+                        district_id: m.scope === "city" ? null : selected,
+                      }
+                    : d,
+                )
+              : [
+                  ...decisions,
+                  {
+                    measure_id: m.id,
+                    district_id: m.scope === "city" ? null : selected,
+                  },
+                ];
             const validation = validateSelections(dataset, next, {
               draft: true,
             });
@@ -540,54 +789,76 @@ export default function CityWorkspace() {
                 validation.error.message)
               : "";
             return (
-              <article
-                className={`measure-card ${added ? "measure-added" : ""}`}
-                key={measure.id}
-              >
+              <article className="measure-card" key={m.id}>
                 <div className="measure-top">
                   <span className="measure-icon">
-                    <Icon size={19} />
-                  </span>
-                  <span>
-                    {measure.scope === "city" ? "Весь город" : district.name}
+                    <Icon size={23} />
                   </span>
                   <strong>
-                    {measure.cost}
-                    <small> ед.</small>
+                    {m.cost}
+                    <small>ед.</small>
                   </strong>
                 </div>
-                <h3>{measure.name}</h3>
+                <h3>{m.name}</h3>
+                <p>
+                  Улучшит:{" "}
+                  {Object.entries(m.effects)
+                    .filter(([, v]) => (v ?? 0) > 0)
+                    .map(([code]) => labels[code].toLowerCase())
+                    .join(", ")}
+                  .
+                </p>
+                {Object.entries(m.effects).some(([, v]) => (v ?? 0) < 0) ? (
+                  <p className="measure-tradeoff">
+                    Снижение:{" "}
+                    {Object.entries(m.effects)
+                      .filter(([, v]) => (v ?? 0) < 0)
+                      .map(([code]) => labels[code])
+                      .join(", ")}
+                    .
+                  </p>
+                ) : null}
                 <div className="measure-timing">
-                  <Clock3 size={13} /> Лаг: {measure.lag_quarters} кв.{" "}
-                  <span>·</span> {measure.id}
+                  <MapPin size={12} />
+                  {m.scope === "city" ? "Весь город" : district.name}
+                  <span>·</span>
+                  <Clock3 size={12} />
+                  {m.lag_quarters * 3} мес. задержки
                 </div>
-                <div className="effect-tags">
-                  {Object.entries(measure.effects).map(([code, value]) =>
-                    value === undefined ? null : (
-                      <span key={code} className={value < 0 ? "negative" : ""}>
-                        {code} {value > 0 ? "+" : ""}
-                        {value}
-                      </span>
-                    ),
-                  )}
-                </div>
-                <p>Полные эффекты до учёта лага</p>
+                <details>
+                  <summary>Эффекты в цифрах</summary>
+                  {Object.entries(m.effects).map(([code, value]) => (
+                    <p key={code}>
+                      {labels[code]}: {(value ?? 0) > 0 ? "+" : ""}
+                      {value}
+                    </p>
+                  ))}
+                  <small>
+                    Полный эффект до учёта задержки. В расчёте применяется
+                    горизонт 8 кварталов.
+                  </small>
+                </details>
                 <button
                   className="add-measure"
-                  aria-label={`Добавить ${measure.id}`}
+                  aria-label={`${editing ? "Заменить на" : "Добавить"} ${m.id}`}
                   disabled={!scenario.loaded || !validation.valid}
                   onClick={() => {
-                    scenario.replace(next);
-                    setForecast(true);
+                    replace(next);
+                    setNotice(
+                      `${editing ? "Мероприятие изменено" : "Добавлено"}: ${m.name}.`,
+                    );
+                    catalog.current?.close();
                   }}
                 >
                   {added ? (
                     <>
-                      <Check size={14} /> В вашем плане
+                      <Check size={15} />
+                      Уже выбрано
                     </>
                   ) : (
                     <>
-                      <Plus size={14} /> Добавить в план
+                      <Plus size={15} />
+                      {editing ? "Заменить" : "Выбрать"} за {m.cost} ед.
                     </>
                   )}
                 </button>
@@ -598,125 +869,86 @@ export default function CityWorkspace() {
             );
           })}
         </div>
-        <div className="catalog-stage">
-          <Check size={16} />
-          <span>
-            Лаги, синергии и несовместимости учитываются общим расчётным
-            модулем. Городские меры действуют во всех районах.
-          </span>
-        </div>
       </dialog>
-
-      <dialog ref={rulesDialog} className="rules-dialog">
+      <dialog ref={rules} className="rules-dialog">
         <div className="dialog-heading">
-          <div>
-            <div className="eyebrow">ПЯТЬ РЕШЕНИЙ ДЛЯ ГОРОДА</div>
-            <h2>Как стать акимом</h2>
-          </div>
+          <h2>Правила и методика</h2>
           <button
             className="icon-button"
             aria-label="Закрыть правила"
-            onClick={() => rulesDialog.current?.close()}
+            onClick={() => rules.current?.close()}
           >
             <X />
           </button>
         </div>
         <ol>
           <li>
-            <strong>Изучите город.</strong> Пять районов и десять показателей
-            помогут найти приоритеты.
+            Все участники начинают со 100 условных единиц. Бюджеты независимы.
           </li>
           <li>
-            <strong>Распределите 100 единиц.</strong> Выберите пять разных
-            мероприятий, не более двух из одного направления.
+            Выберите пять разных мероприятий из пяти доступных направлений, не
+            более двух из одного направления — по правилам исходного датасета.
           </li>
           <li>
-            <strong>Учитывайте последствия.</strong> Районные меры требуют
-            выбора района, городские действуют повсюду. Есть лаги, синергии и
+            Учитываются районный и городской охват, задержка эффекта, синергии и
             несовместимости.
           </li>
           <li>
-            <strong>Оцените результат.</strong> Score учитывает средний и
-            слабейший район, а также показатели ниже 40. AI объясняет результат.
+            Горизонт оценки — восемь кварталов. AI объясняет рассчитанные
+            значения, не назначает баллы.
           </li>
         </ol>
         <div className="formula-note">
           Score = 0,7 × средний индекс + 0,3 × минимальный индекс − число
-          критических показателей
+          показателей ниже 40
         </div>
-        <p className="small-muted">
-          Показатели синтетические. Прогноз — результат учебной модели, а не
-          оценка реальных городских проектов.
+        <p>
+          Условные зоны на карте соответствуют пяти районам датасета. Это не
+          официальный административный план и не оценка фактической ситуации в
+          городе.
         </p>
         <button
-          className="district-action"
+          className="secondary-button"
           onClick={() => {
-            scenario.replace(dataset.example.decisions);
-            setForecast(true);
-            rulesDialog.current?.close();
+            replace(dataset.example.decisions);
+            rules.current?.close();
           }}
         >
           Загрузить контрольный пример · 95 ед. <ArrowRight size={16} />
         </button>
       </dialog>
-
-      <dialog ref={resultDialog} className="rules-dialog result-dialog">
+      <dialog ref={about} className="rules-dialog">
         <div className="dialog-heading">
-          <div>
-            <div className="eyebrow">РЕЗУЛЬТАТ ВАШИХ РЕШЕНИЙ</div>
-            <h2>Город стал другим.</h2>
-          </div>
+          <h2>Город как система решений</h2>
           <button
             className="icon-button"
-            aria-label="Закрыть результат"
-            onClick={() => resultDialog.current?.close()}
+            aria-label="Закрыть информацию"
+            onClick={() => about.current?.close()}
           >
             <X />
           </button>
         </div>
-        <div className="result-score">
-          <span>Astana Quality of Life Score</span>
-          <strong>
-            {scenario.valid ? format(simulation.after.score) : "—"}
-          </strong>
-          <span>
-            {simulation.score_delta >= 0 ? "+" : ""}
-            {format(simulation.score_delta)} к исходному состоянию
-          </span>
-        </div>
-        <div className="result-breakdown">
-          <div>
-            <span>Средний индекс</span>
-            <strong>{format(simulation.after.city_average)}</strong>
-          </div>
-          <div>
-            <span>Слабейший район</span>
-            <strong>{format(simulation.after.minimum_district_score)}</strong>
-          </div>
-          <div>
-            <span>Критических значений</span>
-            <strong>{simulation.after.critical_count}</strong>
-          </div>
-          <div>
-            <span>Потрачено бюджета</span>
-            <strong>{simulation.budget.spent} / 100</strong>
-          </div>
-        </div>
-        <div className="formula-note">
-          {simulation.applied_synergies.length
-            ? `Сработало синергий: ${simulation.applied_synergies.length}. `
-            : ""}
-          Числа рассчитаны общим модулем по правилам GitHub-датасета.
-        </div>
-        <p className="small-muted">
-          AI объясняет сценарий и не изменяет Score.
+        <p>
+          «Аким на 5 часов» — хакатон-проект команды из двух разработчиков. Он
+          помогает исследовать компромиссы между транспортом, экологией,
+          социальной инфраструктурой, безопасностью и городскими сервисами.
         </p>
-        <ReportExplanation
-          report={report}
-          onRetry={() => {
-            void report.run(decisions);
-          }}
-        />
+        <p>
+          В основе — синтетический датасет и воспроизводимая расчётная модель.
+          География реки и главных дорог адаптирована из OpenStreetMap. Здания,
+          кварталы и границы стилизованы для восприятия.
+        </p>
+        <p>
+          Никаких игровых заданий или наград: свободный выбор сценария,
+          прозрачный бюджет и объяснение последствий.
+        </p>
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noreferrer"
+        >
+          © OpenStreetMap contributors · ODbL
+        </a>
       </dialog>
     </div>
   );

@@ -1,102 +1,123 @@
 "use client";
 
-import { useState } from "react";
-import { Minus, Plus, Scan } from "lucide-react";
+import { useRef, useState, type PointerEvent } from "react";
+import {
+  Minus,
+  Plus,
+  Scan,
+  Navigation2,
+  BusFront,
+  Leaf,
+  GraduationCap,
+  ShieldCheck,
+  Wrench,
+  Cross,
+} from "lucide-react";
+import { dataset } from "@/data";
+import infrastructure from "@/features/map/infrastructure.json";
+import {
+  landmarks,
+  project,
+  zones,
+  type LandmarkKind,
+} from "@/features/map/geography";
+import type { Decision } from "@/shared/contracts";
 
-const districts = [
-  {
-    id: "baikonur",
-    name: "Байконур",
-    x: 423,
-    y: 150,
-    score: "56,63",
-    tone: "#d9e3d5",
-  },
-  {
-    id: "saryarka",
-    name: "Сарыарка",
-    x: 205,
-    y: 266,
-    score: "54,65",
-    tone: "#dce5d4",
-  },
-  {
-    id: "almaty",
-    name: "Алматы",
-    x: 631,
-    y: 268,
-    score: "57,06",
-    tone: "#e7e1d0",
-  },
-  {
-    id: "esil",
-    name: "Есиль",
-    x: 386,
-    y: 372,
-    score: "62,99",
-    tone: "#d8e5dd",
-  },
-  { id: "nura", name: "Нура", x: 595, y: 480, score: "49,18", tone: "#dce6d3" },
-];
+const measureIcons = {
+  transport: BusFront,
+  ecology: Leaf,
+  social: GraduationCap,
+  safety: ShieldCheck,
+  services: Wrench,
+};
 
-function Building({
-  x,
-  y,
-  h,
-  variant,
-}: {
-  x: number;
-  y: number;
-  h: number;
-  variant: number;
-}) {
-  const colors = ["#aac6c5", "#efeee5", "#d6d4c2", "#bed0d3"];
+export function LandmarkArt({ kind }: { kind: LandmarkKind }) {
   return (
-    <g transform={`translate(${x} ${y})`}>
-      <path d="M0 6l26 13 28-14-27-12z" fill="#799594" opacity=".13" />
-      <path
-        d={`M-13 0L0 7V${7 - h}L-13 ${-h}Z`}
-        fill={variant % 2 ? "#c4cbc3" : "#779da1"}
-      />
-      <path
-        d={`M0 7L20 -3V${-3 - h}L0 ${7 - h}Z`}
-        fill={colors[variant % colors.length]}
-      />
-      <path
-        d={`M-13 ${-h}L7 ${-10 - h}L20 ${-3 - h}L0 ${7 - h}Z`}
-        fill={variant % 2 ? "#faf9f1" : "#c8dcdc"}
-      />
-      {Array.from({ length: Math.floor(h / 10) }, (_, i) => (
-        <g key={i} opacity=".7">
+    <g strokeLinejoin="round">
+      <ellipse cy="4" rx="27" ry="9" fill="#385e62" opacity=".15" />
+      {kind === "tower" ? (
+        <>
+          <ellipse cy="0" rx="17" ry="7" fill="#f5f3db" />
           <path
-            d={`M3 ${-i * 10 - 1}l4-2v-4l-4 2z M11 ${-i * 10 - 5}l4-2v-4l-4 2z`}
-            fill="#628e95"
+            d="M-9 0L-5-45h10L9 0M-14 0L0-57 14 0"
+            fill="#f9f7e7"
+            stroke="#b7c7bd"
+            strokeWidth="2"
           />
-          <path d={`M-9 ${-i * 10 - 4}l3 1.5v-4l-3-1.5z`} fill="#edf4ed" />
-        </g>
-      ))}
-      {variant % 3 === 0 ? (
-        <path d={`M-5 ${-h}l10-5 7 3.5-10 5z`} fill="#6e999b" />
-      ) : null}
-    </g>
-  );
-}
-
-function Tree({
-  x,
-  y,
-  small = false,
-}: {
-  x: number;
-  y: number;
-  small?: boolean;
-}) {
-  return (
-    <g transform={`translate(${x} ${y}) scale(${small ? 0.7 : 1})`}>
-      <ellipse cx="4" cy="3" rx="10" ry="4" fill="#5e8777" opacity=".16" />
-      <path d="M0 0v-13" stroke="#8b9380" strokeWidth="2" />
-      <path d="M0-33l-10 19L0-9l10-5z" fill="#759a80" />
-      <path d="M0-33v24l10-5z" fill="#4e826d" />
+          <circle
+            cy="-49"
+            r="14"
+            fill="#d7b864"
+            stroke="#f0d896"
+            strokeWidth="2"
+          />
+          <path
+            d="M-9-53Q0-63 9-52"
+            stroke="#fff1bf"
+            fill="none"
+            strokeWidth="3"
+          />
+        </>
+      ) : kind === "tent" ? (
+        <>
+          <path
+            d="M-32 0Q-19-17 7-57Q9-23 34 0Q0 17-32 0"
+            fill="#f2ecd7"
+            stroke="#c7bca6"
+          />
+          <path d="M7-57L-8 8 15 6Z" fill="#d3e4dc" />
+          <path
+            d="M7-57L-21 3M7-57L27 3M7-57L4 9"
+            fill="none"
+            stroke="#b7cbd0"
+          />
+          <path d="M7-57V-68" stroke="#718b88" strokeWidth="2" />
+        </>
+      ) : kind === "sphere" ? (
+        <>
+          <path d="M-27 0L0 10 29 0V-7L0 2-27-7Z" fill="#a5bcc0" />
+          <circle
+            cy="-20"
+            r="25"
+            fill="#7fb7c0"
+            stroke="#d7f0e8"
+            strokeWidth="2"
+          />
+          <ellipse cy="-20" rx="13" ry="25" fill="none" stroke="#c2e2de" />
+          <path
+            d="M-24-20H24M-19-35Q0-26 19-35M-20-5Q0-13 20-5"
+            fill="none"
+            stroke="#c2e2de"
+          />
+        </>
+      ) : (
+        <>
+          <path d="M-29-8L3 3 30-10V-35L-1-43-29-32Z" fill="#b6cbd0" />
+          <path d="M-29-32L3-22 30-35-1-44Z" fill="#f7f5e7" />
+          <path d="M3-22V3L30-10V-35Z" fill="#83a7b5" />
+          {[-22, -12, -2].map((x) => (
+            <path key={x} d={`M${x} -28v21`} stroke="#f4f1df" strokeWidth="3" />
+          ))}
+          {kind === "museum" ? (
+            <>
+              <path d="M-30-34L0-54 30-35 3-23Z" fill="#e6e5d2" />
+              <path d="M0-54V-35L3-23 30-35Z" fill="#cfdbd6" />
+            </>
+          ) : kind === "civic" ? (
+            <>
+              <path d="M-10-42V-53H12V-38" fill="#eee8d4" />
+              <path d="M0-54V-66" stroke="#859e95" />
+              <path d="M0-65h14v7H0" fill="#65b2bf" />
+            </>
+          ) : (
+            <path
+              d="M-25-35L28-20M-16-39L29-28"
+              stroke="#d2bd87"
+              strokeWidth="3"
+            />
+          )}
+        </>
+      )}
     </g>
   );
 }
@@ -104,275 +125,388 @@ function Tree({
 export default function CityMap({
   selected,
   onSelect,
+  decisions,
   changes,
 }: {
-  selected: string;
+  selected: string | null;
   onSelect: (id: string) => void;
+  decisions: Decision[];
   changes?: Record<string, number>;
 }) {
-  const [zoom, setZoom] = useState(1);
+  const [camera, setCamera] = useState({ x: -25, y: 0, width: 1250 });
+  const svg = useRef<SVGSVGElement>(null);
+  const drag = useRef<{
+    id: number;
+    x: number;
+    y: number;
+    cx: number;
+    cy: number;
+    moved: boolean;
+  } | null>(null);
+  const suppressClick = useRef(false);
+  const height = camera.width * 0.68;
+  function zoom(factor: number) {
+    setCamera((c) => {
+      const width = Math.max(780, Math.min(1500, c.width * factor));
+      return {
+        x: c.x + (c.width - width) / 2,
+        y: c.y + (c.width - width) * 0.34,
+        width,
+      };
+    });
+  }
+  function pointerDown(e: PointerEvent<SVGSVGElement>) {
+    if (e.button !== 0 || drag.current) return;
+    suppressClick.current = false;
+    drag.current = {
+      id: e.pointerId,
+      x: e.clientX,
+      y: e.clientY,
+      cx: camera.x,
+      cy: camera.y,
+      moved: false,
+    };
+  }
+  function pointerMove(e: PointerEvent<SVGSVGElement>) {
+    if (e.pointerType === "mouse" && (e.buttons & 1) === 0) {
+      drag.current = null;
+      return;
+    }
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId || !svg.current) return;
+    const dx = e.clientX - d.x,
+      dy = e.clientY - d.y;
+    if (Math.abs(dx) + Math.abs(dy) < 6 && !d.moved) return;
+    d.moved = true;
+    suppressClick.current = true;
+    svg.current.setPointerCapture(e.pointerId);
+    const ratio = Math.max(
+      camera.width / svg.current.clientWidth,
+      height / svg.current.clientHeight,
+    );
+    setCamera((c) => ({
+      ...c,
+      x: Math.max(-700, Math.min(1100, d.cx - dx * ratio)),
+      y: Math.max(-500, Math.min(800, d.cy - dy * ratio)),
+    }));
+  }
+  function stopDrag(e: PointerEvent<SVGSVGElement>) {
+    drag.current = null;
+    if (svg.current?.hasPointerCapture(e.pointerId))
+      svg.current.releasePointerCapture(e.pointerId);
+  }
+  const select = (id: string) => {
+    if (!suppressClick.current) onSelect(id);
+  };
   return (
     <div className="map-stage">
-      <div className="map-topline">
-        <span>
-          <i /> ГОРОДСКАЯ СРЕДА
-        </span>
-        <span>АСТАНА · 5 РАЙОНОВ</span>
-      </div>
       <svg
+        ref={svg}
         className="city-scene"
-        viewBox="0 0 850 625"
-        aria-label="Схематическая изометрическая карта пяти районов Астаны"
+        viewBox={`${camera.x} ${camera.y} ${camera.width} ${height}`}
+        aria-label="Стилизованная карта районов Астаны"
+        onPointerDown={pointerDown}
+        onPointerMove={pointerMove}
+        onPointerUp={stopDrag}
+        onPointerCancel={stopDrag}
+        onLostPointerCapture={() => {
+          drag.current = null;
+        }}
+        onPointerLeave={() => {
+          if (!drag.current?.moved) drag.current = null;
+        }}
       >
         <defs>
           <filter
-            id="ground-shadow"
-            x="-30%"
-            y="-30%"
-            width="160%"
-            height="180%"
+            id="landmark-shadow"
+            x="-70%"
+            y="-50%"
+            width="240%"
+            height="220%"
           >
             <feDropShadow
-              dx="0"
-              dy="12"
-              stdDeviation="12"
-              floodColor="#426054"
-              floodOpacity=".13"
+              dx="2"
+              dy="5"
+              stdDeviation="4"
+              floodColor="#33584b"
+              floodOpacity=".17"
             />
           </filter>
-          <linearGradient id="water" x1="0" y1="0" x2="1" y2="1">
-            <stop stopColor="#a3cccf" />
-            <stop offset="1" stopColor="#c6e1df" />
-          </linearGradient>
         </defs>
-        <g transform={`translate(425 310) scale(${zoom}) translate(-425 -310)`}>
-          <path
-            d="M36 327L381 128 811 365 463 572Z"
-            fill="#e7e9df"
-            opacity=".7"
-          />
-          <path
-            d="M15 336C160 287 196 395 326 307S461 247 520 348s177 74 308 199"
-            fill="none"
-            stroke="#dde8e1"
-            strokeWidth="60"
-          />
-          <path
-            d="M15 336C160 287 196 395 326 307S461 247 520 348s177 74 308 199"
-            fill="none"
-            stroke="url(#water)"
-            strokeWidth="44"
-          />
-          <path
-            d="M17 329C162 280 198 388 328 300S463 240 522 341s177 74 308 199"
-            fill="none"
-            stroke="#eaf6ef"
-            strokeWidth="1.5"
-            opacity=".75"
-          />
+        <image href="/maps/astana.svg" x="0" y="0" width="1200" height="850" />
+        <g className="zone-boundaries">
+          {zones.map((zone) => (
+            <polygon
+              key={zone.id}
+              points={zone.polygon}
+              fill={zone.color}
+              fillOpacity={selected === zone.id ? 0.17 : 0.09}
+              stroke={selected === zone.id ? "#244d7c" : zone.color}
+              strokeOpacity={selected === zone.id ? 0.9 : 0.55}
+              strokeWidth={selected === zone.id ? 3 : 1.5}
+              strokeDasharray={selected === zone.id ? undefined : "6 5"}
+              onClick={() => select(zone.id)}
+            />
+          ))}
+        </g>
+        <g
+          className="geographic-labels"
+          pointerEvents="none"
+          fill="#558b96"
+          fontSize="14"
+          fontWeight="600"
+        >
           <text
-            x="312"
-            y="323"
-            transform="rotate(-28 312 323)"
-            fill="#619c9f"
-            fontSize="10"
-            letterSpacing="4"
+            x="820"
+            y="490"
+            transform="rotate(27 820 490)"
+            letterSpacing="7"
           >
             ЕСИЛЬ
           </text>
-          <path
-            d="M280 168L719 416M130 323L585 65M301 477L744 222"
-            fill="none"
-            stroke="#c9cec3"
-            strokeWidth="19"
-          />
-          <path
-            d="M280 168L719 416M130 323L585 65M301 477L744 222"
-            fill="none"
-            stroke="#f8f7ef"
-            strokeWidth="13"
-          />
-          <path
-            d="M280 168L719 416M130 323L585 65M301 477L744 222"
-            fill="none"
-            stroke="#cfd4c9"
-            strokeDasharray="6 7"
-          />
-          {districts.map((district, index) => {
-            const active = selected === district.id;
-            return (
-              <g
-                key={district.id}
-                transform={`translate(${district.x} ${district.y})`}
-                role="button"
-                tabIndex={0}
-                aria-label={`Район ${district.name}`}
-                aria-pressed={active}
-                onClick={() => onSelect(district.id)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    onSelect(district.id);
-                  }
-                }}
-                className="district-tile"
-              >
-                <g filter="url(#ground-shadow)">
-                  <path d="M-147 0L0 75 147 0v9L0 85-147 9Z" fill="#bccbb9" />
-                  <path
-                    d="M-147 0L0-75 147 0 0 75Z"
-                    fill={active ? "#c2ddd0" : district.tone}
-                    stroke={active ? "#328b79" : "#f5f6ee"}
-                    strokeWidth={active ? 2.5 : 2}
-                  />
-                </g>
-                <path
-                  d="M-111-17L36 57M-72-37L75 37M-31-57L113 16M-109 17L35-57M-71 37L74-37M-32 57L113-17"
-                  fill="none"
-                  stroke="#f1f1e7"
-                  strokeWidth="6"
-                />
-                <path
-                  d="M-112-17L36 57M-72-37L75 37M-31-57L113 16"
-                  fill="none"
-                  stroke="#dde2d5"
-                  strokeWidth=".6"
-                />
-                {Array.from({ length: 4 }, (_, row) =>
-                  Array.from({ length: 4 }, (_, col) => {
-                    const x = (col - row) * 29;
-                    const y = (col + row) * 14.5 - 42;
-                    const n = row * 4 + col + index;
-                    return n % 4 === 0 ? (
-                      <Tree key={`${row}-${col}`} x={x} y={y} />
-                    ) : (
-                      <Building
-                        key={`${row}-${col}`}
-                        x={x}
-                        y={y}
-                        h={22 + ((n * 11) % 37)}
-                        variant={n}
-                      />
-                    );
-                  }),
-                )}
-                {changes && Math.abs(changes[district.id]) > 0.001 ? (
-                  <g transform="translate(0 74)">
-                    <rect
-                      x="-31"
-                      y="-9"
-                      width="62"
-                      height="18"
-                      rx="9"
-                      fill="#286652"
-                    />
-                    <text textAnchor="middle" y="3" fontSize="9" fill="#ffffff">
-                      {changes[district.id] > 0 ? "+" : ""}
-                      {changes[district.id].toFixed(2)} п.
-                    </text>
-                  </g>
-                ) : null}
-                <Tree x={-108} y={4} small />
-                <Tree x={97} y={-3} small />
-                <Tree x={-19} y={58} small />
-                {district.id === "esil" ? (
-                  <g transform="translate(24 -45)">
-                    <ellipse cy="5" rx="15" ry="7" fill="#e6eddf" />
-                    <path
-                      d="M-7 0L-3-45h6L7 0M-9 0L0-52 9 0"
-                      fill="#f5f6ec"
-                      stroke="#c2cbbf"
-                    />
-                    <circle cy="-49" r="11" fill="#c6af78" />
-                    <path
-                      d="M-6-53q7-7 13 1"
-                      fill="none"
-                      stroke="#ead9a2"
-                      strokeWidth="3"
-                    />
-                  </g>
-                ) : null}
-                <g transform="translate(0 -116)">
-                  <path
-                    d="M0 19l-5-7h10z"
-                    fill={active ? "#256b5d" : "#fffdf5"}
-                  />
+          <text x="107" y="693" fontSize="11">
+            Талдыколь
+          </text>
+          <text
+            x="425"
+            y="585"
+            transform="rotate(-76 425 585)"
+            fontSize="8"
+            fill="#7b8974"
+          >
+            Қабанбай батыр
+          </text>
+          <text
+            x="725"
+            y="355"
+            transform="rotate(-16 725 355)"
+            fontSize="8"
+            fill="#7b8974"
+          >
+            Тәуелсіздік
+          </text>
+        </g>
+        {camera.width < 1100 ? (
+          <g className="infrastructure" pointerEvents="none">
+            {infrastructure.map((item) => {
+              const p = project(item.lon, item.lat);
+              const Icon =
+                item.kind === "clinic"
+                  ? Cross
+                  : item.kind === "police"
+                    ? ShieldCheck
+                    : GraduationCap;
+              return (
+                <g key={item.id} transform={`translate(${p.x} ${p.y})`}>
+                  <title>{item.name}</title>
                   <rect
-                    x="-63"
+                    x="-10"
                     y="-10"
-                    width="126"
-                    height="27"
-                    rx="13.5"
-                    fill={active ? "#256b5d" : "#fffdf5"}
-                    stroke={active ? "#256b5d" : "#dbe1d5"}
+                    width="20"
+                    height="20"
+                    rx="6"
+                    fill="#fffef5"
+                    stroke="#c1d3bd"
                   />
-                  <circle
-                    cx="-47"
-                    cy="3.5"
-                    r="3.5"
-                    fill={
-                      active ? "#b2e3cb" : index === 4 ? "#c6a263" : "#83a693"
-                    }
-                  />
-                  <text
-                    x="-35"
-                    y="7.5"
-                    fontSize="11"
-                    fontWeight="700"
-                    fill={active ? "#fff" : "#3c5348"}
-                  >
-                    {district.name}
-                  </text>
+                  <Icon x={-6} y={-6} width={12} height={12} color="#70956d" />
                 </g>
+              );
+            })}
+          </g>
+        ) : null}
+        <g className="landmarks" pointerEvents="none">
+          {landmarks.map((l) => {
+            const p = project(l.lon, l.lat);
+            return (
+              <g key={l.name} transform={`translate(${p.x} ${p.y})`}>
+                <g filter="url(#landmark-shadow)">
+                  <g transform="scale(1.35)">
+                    <LandmarkArt kind={l.kind} />
+                  </g>
+                </g>
+                <text
+                  textAnchor="middle"
+                  y="28"
+                  fontSize="12"
+                  fontWeight="650"
+                  fill="#344e70"
+                  stroke="#f5f8e9"
+                  strokeWidth="4"
+                  paintOrder="stroke"
+                >
+                  {l.name}
+                </text>
               </g>
             );
           })}
-          <g transform="translate(82 517)" fill="none" stroke="#9cae9f">
-            <path d="M0-18L7 0 0-4-7 0Z" fill="#668376" stroke="none" />
-            <path d="M0 4v13" />
-            <text
-              y="-24"
-              textAnchor="middle"
-              fontSize="9"
-              fill="#80988b"
-              stroke="none"
-            >
-              С
-            </text>
-          </g>
         </g>
+        {zones.map((zone) => {
+          const active = selected === zone.id;
+          const count = decisions.filter(
+            (d) => d.district_id === zone.id,
+          ).length;
+          return (
+            <g
+              key={zone.id}
+              role="button"
+              tabIndex={0}
+              aria-label={`Район ${zone.name}`}
+              aria-pressed={active}
+              className={`district-pin ${active ? "active" : ""}`}
+              transform={`translate(${zone.x} ${zone.y})`}
+              onClick={() => select(zone.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelect(zone.id);
+                }
+              }}
+            >
+              <title>{`${zone.name} · ориентир: ${zone.landmark}`}</title>
+              <rect
+                x="-78"
+                y="-25"
+                width="156"
+                height="51"
+                rx="18"
+                fill={active ? "#203959" : "#fffdfa"}
+                stroke={active ? "#fff" : "#d9dfe7"}
+                strokeWidth="2"
+              />
+              <g transform="translate(-49 9) scale(.45)">
+                <LandmarkArt kind={zone.icon} />
+              </g>
+              <text
+                x="-24"
+                y="-3"
+                fill={active ? "#fff" : "#233a56"}
+                fontSize="14"
+                fontWeight="750"
+              >
+                {zone.name}
+              </text>
+              <text
+                x="-24"
+                y="13"
+                fill={active ? "#d1e1ef" : "#687d91"}
+                fontSize="9"
+              >
+                {count ? `${count} в плане` : "Выбрать район"}
+              </text>
+              {count > 0 ? (
+                <g transform="translate(73 -22)">
+                  <circle
+                    r="12"
+                    fill="#e2b25c"
+                    stroke="#fffdf5"
+                    strokeWidth="2"
+                  />
+                  <text
+                    textAnchor="middle"
+                    y="4"
+                    fontSize="11"
+                    fontWeight="800"
+                    fill="#3c4b37"
+                  >
+                    {count}
+                  </text>
+                </g>
+              ) : null}
+              {changes ? (
+                <g className="decision-map-markers">
+                  {decisions
+                    .filter(
+                      (d) =>
+                        d.district_id === zone.id || d.district_id === null,
+                    )
+                    .map((d, index) => {
+                      const measure = dataset.measures.find(
+                        (m) => m.id === d.measure_id,
+                      )!;
+                      const Icon = measureIcons[measure.direction_id];
+                      return (
+                        <g
+                          key={d.measure_id}
+                          transform={`translate(${-56 + index * 28} 71)`}
+                        >
+                          <title>{`${measure.name} · ${d.district_id === null ? "Весь город" : "Условное место в районе"}`}</title>
+                          <rect
+                            x="-12"
+                            y="-12"
+                            width="24"
+                            height="24"
+                            rx="8"
+                            fill="#315d91"
+                            stroke="#fffef5"
+                            strokeWidth="1.5"
+                          />
+                          <Icon
+                            x={-7}
+                            y={-7}
+                            width={14}
+                            height={14}
+                            color="#fffef5"
+                          />
+                        </g>
+                      );
+                    })}
+                </g>
+              ) : null}
+              {changes && Math.abs(changes[zone.id] ?? 0) > 0.001 ? (
+                <g transform="translate(0 41)">
+                  <rect
+                    x="-33"
+                    y="-9"
+                    width="66"
+                    height="20"
+                    rx="10"
+                    fill="#fffef5"
+                  />
+                  <text textAnchor="middle" y="5" fontSize="11" fill="#315d91">
+                    {changes[zone.id] > 0 ? "+" : ""}
+                    {changes[zone.id].toFixed(2)} п.
+                  </text>
+                </g>
+              ) : null}
+            </g>
+          );
+        })}
       </svg>
-      <div className="map-bottomline">
-        <div className="map-legend">
-          <span>
-            <i className="legend-dot" /> Район города
-          </span>
-          <span>
-            <i className="legend-dot selected" /> Выбранный район
-          </span>
-        </div>
-        <div className="map-controls">
-          <button
-            aria-label="Уменьшить карту"
-            disabled={zoom <= 0.8}
-            onClick={() => setZoom((z) => Math.max(0.8, z - 0.1))}
-          >
-            <Minus size={16} />
-          </button>
-          <button aria-label="Вернуть масштаб карты" onClick={() => setZoom(1)}>
-            <Scan size={16} />
-          </button>
-          <button
-            aria-label="Увеличить карту"
-            disabled={zoom >= 1.3}
-            onClick={() => setZoom((z) => Math.min(1.3, z + 0.1))}
-          >
-            <Plus size={16} />
-          </button>
-        </div>
+      <div className="map-orientation">
+        <Navigation2 size={17} />
+        <span>С</span>
       </div>
-      <div className="map-disclaimer">
-        Схематическая карта · синтетические данные
+      <div className="map-controls">
+        <button
+          aria-label="Увеличить карту"
+          onClick={() => zoom(0.8)}
+          disabled={camera.width <= 780}
+        >
+          <Plus size={19} />
+        </button>
+        <button
+          aria-label="Уменьшить карту"
+          onClick={() => zoom(1.25)}
+          disabled={camera.width >= 1500}
+        >
+          <Minus size={19} />
+        </button>
+        <button
+          aria-label="Вернуть масштаб карты"
+          onClick={() => setCamera({ x: -25, y: 0, width: 1250 })}
+        >
+          <Scan size={18} />
+        </button>
+      </div>
+      <div className="map-attribution">
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noreferrer"
+        >
+          © OpenStreetMap · ODbL
+        </a>
+        <span>Условные границы и кварталы</span>
       </div>
     </div>
   );
