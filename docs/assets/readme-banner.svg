@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="340" viewBox="0 0 1200 340" role="img" aria-labelledby="title desc">
-  <title id="title">Аким на 5 часов</title>
+  <title id="title">that day — Аким на 5 часов</title>
   <desc id="desc">Синяя обложка с золотым шаныраком и силуэтами Байтерека и Хан Шатыра. Решения сегодня. Астана завтра.</desc>
   <defs>
     <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#152b47"/><stop offset="1" stop-color="#2d527c"/></linearGradient>
@@ -12,7 +12,7 @@
   <g transform="translate(66 63)" stroke="#d2b577" fill="none" stroke-width="1.8">
     <circle r="24"/><circle r="18"/><path d="M-24 0h48M0-24v48M-17-17l34 34M-17 17l34-34M-18 0Q0-30 18 0Q0 30-18 0M0-18Q-30 0 0 18Q30 0 0-18"/>
   </g>
-  <text x="108" y="69" font-family="Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="3" fill="#dfc794">THAT DAY IN / ASTANA</text>
+  <text x="108" y="69" font-family="Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="3" fill="#dfc794">that day / ASTANA</text>
   <text x="42" y="156" font-family="Arial, sans-serif" font-size="60" font-weight="700" letter-spacing="-2" fill="#ffffff">Аким на 5 часов</text>
   <text x="44" y="204" font-family="Arial, sans-serif" font-size="25" fill="#c1d2e4">Решения сегодня. Астана завтра.</text>
   <rect x="44" y="241" width="252" height="36" rx="18" fill="#ffffff" fill-opacity=".08" stroke="#b1c7df" stroke-opacity=".2"/>
