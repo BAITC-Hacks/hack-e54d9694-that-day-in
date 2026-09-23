@@ -56,6 +56,12 @@ describe("Redis REST adapter without real credentials", () => {
     const store = new RedisLeaderboardStore("https://redis.example.test", "token", fetcher);
     expect((await store.page("fixture-only", 0, 20)).entries).toEqual([]);
   });
+  it("accepts the real Upstash empty-board response without a null field", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ result: JSON.stringify({ entries: [], total: 0, winner_count: 0 }) }));
+    const page = await new RedisLeaderboardStore("https://redis.example.test", "token", fetcher).page("fixture-only", 0, 20);
+    expect(page.best_score).toBeNull();
+    expect(page.entries).toEqual([]);
+  });
   it("rejects failed commands, corrupt replies and mismatched versions", async () => {
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(Response.json({ error: "ERR" }))

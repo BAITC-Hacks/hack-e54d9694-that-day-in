@@ -69,6 +69,8 @@ export class RedisLeaderboardStore implements LeaderboardStore {
     const value = await this.eval(PAGE_SCRIPT, version, [String(offset), String(limit)]);
     if (typeof value !== "string") throw new Error("Invalid stored page");
     const parsed = JSON.parse(value);
+    // Upstash's Lua JSON encoder can omit cjson.null on an empty board.
+    if (parsed.total === 0 && parsed.best_score === undefined) parsed.best_score = null;
     // Redis Lua encodes an empty table as {}, not [].
     if (parsed.entries && !Array.isArray(parsed.entries) && Object.keys(parsed.entries).length === 0) parsed.entries = [];
     const page = PageSchema.parse(parsed);
