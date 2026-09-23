@@ -18,19 +18,20 @@
 | :--- | :--- | :--- |
 | [`main`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/main) | Основная версия проекта | Приложение, датасет, тесты и документация; ветка для запуска и новых PR |
 | [`codex/ui`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/ui) | Интерфейс и сборка этапов разработки | Проверенная интеграция объединена в `main` через PR #3; ветка сохранена |
-| [`codex/map-studio`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/map-studio) | Активная разработка нового интерфейса карты | Новые изменения после основной интеграции; в `main` пока не включены. Это рабочая, а не историческая ветка |
-| [`codex/deploy`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/deploy) | Подготовка публикации и проверка Vercel/Redis | Последняя зафиксированная сборка приложения — `5f478f0`; отчёт — `934a40b`; включены в `main` |
+| [`codex/map-studio`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/map-studio) | Фокус района, панели и события на карте | Проверенная реализация `ebb5dc2` и журнал публикации включены в `main` через PR #7; ветка сохранена |
+| [`codex/deploy`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/deploy) | Подготовка публикации и проверка Vercel/Redis | Предыдущая публикация `5f478f0` и отчёт `934a40b` включены в `main`; актуальный deployment описан в журнале |
 | [`codex/scenario-features`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/scenario-features) | Backend рейтинга, рекомендаций, событий и презентации | Изменения до `7ce23ac` включены в `main` |
 | [`codex/resident-feedback`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/resident-feedback) | Экспериментальная проекция состояния по отзывам | Изменения до `32a4946` включены в `main`; API сохранён, отдельного экрана пока нет |
 | [`codex/dataset-prep`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/dataset-prep) | Адаптер датасета, симуляция и базовый AI/API | Изменения до `07b139c` включены в `main`; название отражает начальный этап |
 | [`codex/contracts`](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/tree/codex/contracts) | Согласованные контракты authoritative dataset | Изменения до `c4b8ca1` включены в `main`; старые схемы из истории не использовать |
 
-«Включены» означает, что указанный commit этапа является предком `main`. В начале README сохранённых веток добавлены пояснения и ссылка на актуальное приложение; последующие commits этих пометок не меняют код этапа. Статус отдельного исторического PR может отличаться: его исходной базой была другая рабочая ветка.
+«Включены» означает, что указанный commit этапа является предком `main`. В начале README пяти исторических backend/deploy-веток добавлены пояснения и ссылка на актуальное приложение; последующие commits этих пометок не меняют код этапа. Статус отдельного исторического PR может отличаться: его исходной базой была другая рабочая ветка.
 
 ## Pull requests
 
 | PR | Назначение | Как читать |
 | :--- | :--- | :--- |
+| [#7 · карта и события](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/pull/7) | `codex/map-studio` → `main` | Новая карта, события и актуальный журнал публикации объединены в `main` |
 | [#3 · приложение](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/pull/3) | `codex/ui` → `main` | Приложение объединено в `main`; история основной интеграции |
 | [#6 · публикация](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/pull/6) | `codex/deploy` → `codex/scenario-features` | История публикации и исправления «+»; эти commits уже включены в `main` |
 | [#5 · дополнительные функции](https://github.com/BAITC-Hacks/hack-e54d9694-that-day-in/pull/5) | `codex/scenario-features` → `codex/resident-feedback` | История серверного этапа; включена в интеграцию |
@@ -48,7 +49,7 @@
 
 Для владельца репозитория, если есть права на изменение настроек:
 
-- **Description:** `Аким на 5 часов — AI-симулятор управления Астаной: 5 направлений, бюджет 100 и прозрачный Quality of Life Score.`
+- **Description:** `that day — AI-симулятор управления Астаной: 5 направлений, бюджет 100 и прозрачный Quality of Life Score.`
 - **Website:** `https://akim-five-hours.vercel.app`
 - **Topics:** `hackathon`, `astana`, `urban-planning`, `simulation`, `nextjs`, `typescript`, `openai`
 
