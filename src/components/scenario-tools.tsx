@@ -13,6 +13,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { dataset } from "@/data";
+import PresentationSlide from "./presentation-slide";
 import { validateSelections } from "@/lib/simulation";
 import type { Decision, EvidenceFact } from "@/shared/contracts";
 import {
@@ -604,24 +605,15 @@ function Presentation({ decisions }: Props) {
               Скачать Markdown
             </button>
           </div>
-          <article className="presentation-slide">
-            <span className="section-kicker">{data.title}</span>
-            <h3>{current.title}</h3>
-            <ul>
-              {current.bullets.map((b, i) => (
-                <li key={i}>{b}</li>
-              ))}
-            </ul>
+          <nav className="deck-navigation" aria-label="Слайды презентации">{data.slides.map((item, index) => <button key={item.id} aria-current={index === slide ? "step" : undefined} onClick={() => setSlide(index)}><span>{String(index + 1).padStart(2, "0")}</span>{item.title}</button>)}</nav>
+          <PresentationSlide slide={current} source={data.source} title={data.title} index={slide} total={data.slides.length}>
             {current.explanations.map((e, i) => (
-              <div key={i}>
+              <div className="deck-explanation" key={i}>
                 <p>{e.explanation}</p>
                 <Evidence ids={e.evidence_ids} facts={data.evidence} />
               </div>
             ))}
-            <span className="slide-number">
-              {String(slide + 1).padStart(2, "0")}
-            </span>
-          </article>
+          </PresentationSlide>
           <p className="small-muted">
             Просмотр слайдов и экспорт Markdown. Форматы PPTX и PDF пока не
             поддерживаются.

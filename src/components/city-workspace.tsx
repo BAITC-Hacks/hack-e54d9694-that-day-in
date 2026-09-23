@@ -133,9 +133,8 @@ export default function CityWorkspace() {
           </span>
         </Link>
         <nav aria-label="Основная навигация">
-          <a href="#city" onClick={() => setScreen("city")}>Город</a>
-          <a href="#scenario" onClick={() => setScreen("city")}>
-            Мой сценарий{" "}
+          <a href="#city" onClick={() => setScreen("city")}>
+            Карта и мероприятия{" "}
             <span className="count-pill">{decisions.length}/5</span>
           </a>
           <a href="#analysis" onClick={() => setScreen("analysis")}>Анализ и сравнение</a>
