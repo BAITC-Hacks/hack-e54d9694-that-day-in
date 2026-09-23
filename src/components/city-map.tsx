@@ -104,9 +104,11 @@ function Tree({
 export default function CityMap({
   selected,
   onSelect,
+  changes,
 }: {
   selected: string;
   onSelect: (id: string) => void;
+  changes?: Record<string, number>;
 }) {
   const [zoom, setZoom] = useState(1);
   return (
@@ -254,6 +256,22 @@ export default function CityMap({
                     );
                   }),
                 )}
+                {changes && Math.abs(changes[district.id]) > 0.001 ? (
+                  <g transform="translate(0 74)">
+                    <rect
+                      x="-31"
+                      y="-9"
+                      width="62"
+                      height="18"
+                      rx="9"
+                      fill="#286652"
+                    />
+                    <text textAnchor="middle" y="3" fontSize="9" fill="#ffffff">
+                      {changes[district.id] > 0 ? "+" : ""}
+                      {changes[district.id].toFixed(2)} п.
+                    </text>
+                  </g>
+                ) : null}
                 <Tree x={-108} y={4} small />
                 <Tree x={97} y={-3} small />
                 <Tree x={-19} y={58} small />
