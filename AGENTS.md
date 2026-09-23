@@ -1,5 +1,6 @@
 # Working agreement
 
+- `main` is the canonical, runnable integration branch. Start new task branches from current `origin/main`; retained `codex/*` branches document earlier stages and must not be mistaken for the latest application. Keep branch history and names unless the user requests otherwise.
 - Before each meaningful work stage, fetch all origin branches and pull the current upstream branch. Inspect changes from main and other codex branches; merge only compatible changes. Never overwrite another developer's changes.
 - Commit and push completed, verified stages. Do not force push. Developer 1 coordinates integration.
 - The sole authoritative dataset is `dataset/dataset.json`: five districts, ten indicators, fourteen measures, eight quarters, five distinct measures, at most two per direction. AI explains the deterministic score; it does not grade it.
