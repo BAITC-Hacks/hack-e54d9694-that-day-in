@@ -1,0 +1,1223 @@
+{
+  "datasetVersion": "1.0.0",
+  "rulesVersion": "1.0.0",
+  "evaluationVersion": "1.0.0",
+  "budget": {
+    "initial": 100,
+    "unit": "условная единица"
+  },
+  "horizonMonths": 12,
+  "metricWeights": {
+    "transport": 0.2,
+    "greenery": 0.2,
+    "social": 0.2,
+    "safety": 0.2,
+    "services": 0.2
+  },
+  "districts": [
+    {
+      "id": "center",
+      "name": "Центр",
+      "population": 120000,
+      "baselineMetrics": {
+        "transport": 58,
+        "greenery": 40,
+        "social": 78,
+        "safety": 72,
+        "services": 70
+      },
+      "mapPosition": {
+        "x": 50,
+        "y": 45
+      },
+      "visualVariant": "center"
+    },
+    {
+      "id": "north",
+      "name": "Северный",
+      "population": 80000,
+      "baselineMetrics": {
+        "transport": 45,
+        "greenery": 56,
+        "social": 42,
+        "safety": 48,
+        "services": 52
+      },
+      "mapPosition": {
+        "x": 48,
+        "y": 18
+      },
+      "visualVariant": "residential"
+    },
+    {
+      "id": "south",
+      "name": "Южный",
+      "population": 100000,
+      "baselineMetrics": {
+        "transport": 40,
+        "greenery": 48,
+        "social": 38,
+        "safety": 50,
+        "services": 42
+      },
+      "mapPosition": {
+        "x": 48,
+        "y": 80
+      },
+      "visualVariant": "mixed"
+    },
+    {
+      "id": "east",
+      "name": "Восточный",
+      "population": 70000,
+      "baselineMetrics": {
+        "transport": 52,
+        "greenery": 28,
+        "social": 50,
+        "safety": 40,
+        "services": 38
+      },
+      "mapPosition": {
+        "x": 80,
+        "y": 43
+      },
+      "visualVariant": "industrial"
+    },
+    {
+      "id": "west",
+      "name": "Западный",
+      "population": 90000,
+      "baselineMetrics": {
+        "transport": 38,
+        "greenery": 68,
+        "social": 45,
+        "safety": 55,
+        "services": 48
+      },
+      "mapPosition": {
+        "x": 18,
+        "y": 48
+      },
+      "visualVariant": "park"
+    },
+    {
+      "id": "riverside",
+      "name": "Прибрежный",
+      "population": 40000,
+      "baselineMetrics": {
+        "transport": 48,
+        "greenery": 62,
+        "social": 55,
+        "safety": 42,
+        "services": 40
+      },
+      "mapPosition": {
+        "x": 78,
+        "y": 76
+      },
+      "visualVariant": "riverside"
+    }
+  ],
+  "programs": [
+    {
+      "id": "transport-1",
+      "direction": "transport",
+      "title": "Настройка светофоров",
+      "description": "Адаптивные циклы на перегруженных перекрёстках нескольких районов.",
+      "cost": 12,
+      "implementationMonths": 3,
+      "effects": [
+        {
+          "districtId": "center",
+          "deltas": {
+            "transport": 12,
+            "greenery": 0,
+            "social": 0,
+            "safety": 2,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "north",
+          "deltas": {
+            "transport": 5,
+            "greenery": 0,
+            "social": 0,
+            "safety": 0,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "south",
+          "deltas": {
+            "transport": 4,
+            "greenery": 0,
+            "social": 0,
+            "safety": 0,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "east",
+          "deltas": {
+            "transport": 9,
+            "greenery": 0,
+            "social": 0,
+            "safety": 2,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "west",
+          "deltas": {
+            "transport": 3,
+            "greenery": 0,
+            "social": 0,
+            "safety": 0,
+            "services": 0
+          }
+        }
+      ],
+      "tradeoffs": [
+        "Небольшой эффект там, где не хватает маршрутной сети."
+      ],
+      "risks": [
+        "Понадобятся настройка датчиков и контроль времени ожидания пешеходов."
+      ]
+    },
+    {
+      "id": "transport-2",
+      "direction": "transport",
+      "title": "Автобусные коридоры",
+      "description": "Приоритет общественного транспорта между жилыми районами и центром.",
+      "cost": 20,
+      "implementationMonths": 8,
+      "effects": [
+        {
+          "districtId": "center",
+          "deltas": {
+            "transport": 5,
+            "greenery": 2,
+            "social": 0,
+            "safety": 0,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "north",
+          "deltas": {
+            "transport": 15,
+            "greenery": 2,
+            "social": 0,
+            "safety": 0,
+            "services": -1
+          }
+        },
+        {
+          "districtId": "south",
+          "deltas": {
+            "transport": 17,
+            "greenery": 3,
+            "social": 0,
+            "safety": 0,
+            "services": -1
+          }
+        },
+        {
+          "districtId": "east",
+          "deltas": {
+            "transport": 5,
+            "greenery": 2,
+            "social": 0,
+            "safety": 0,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "west",
+          "deltas": {
+            "transport": 16,
+            "greenery": 3,
+            "social": 0,
+            "safety": 0,
+            "services": -1
+          }
+        },
+        {
+          "districtId": "riverside",
+          "deltas": {
+            "transport": 6,
+            "greenery": 2,
+            "social": 0,
+            "safety": 0,
+            "services": 0
+          }
+        }
+      ],
+      "tradeoffs": [
+        "Перераспределение полос усложняет подъезд коммунальной техники."
+      ],
+      "risks": [
+        "Согласование маршрутов и поставка остановок могут задержать запуск."
+      ]
+    },
+    {
+      "id": "transport-3",
+      "direction": "transport",
+      "title": "Расширение магистралей",
+      "description": "Расширение основных въездов и узлов в центре и восточной части.",
+      "cost": 28,
+      "implementationMonths": 12,
+      "effects": [
+        {
+          "districtId": "center",
+          "deltas": {
+            "transport": 20,
+            "greenery": -9,
+            "social": 0,
+            "safety": -3,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "north",
+          "deltas": {
+            "transport": 13,
+            "greenery": -6,
+            "social": 0,
+            "safety": -2,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "south",
+          "deltas": {
+            "transport": 6,
+            "greenery": -3,
+            "social": 0,
+            "safety": 0,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "east",
+          "deltas": {
+            "transport": 23,
+            "greenery": -10,
+            "social": 0,
+            "safety": -3,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "west",
+          "deltas": {
+            "transport": 4,
+            "greenery": -2,
+            "social": 0,
+            "safety": 0,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "riverside",
+          "deltas": {
+            "transport": 3,
+            "greenery": -2,
+            "social": 0,
+            "safety": 0,
+            "services": 0
+          }
+        }
+      ],
+      "tradeoffs": [
+        "Рост дорожной ёмкости сопровождается потерей зелени и более сложными переходами."
+      ],
+      "risks": [
+        "Строительные работы занимают весь горизонт, возможен срыв этапов."
+      ]
+    },
+    {
+      "id": "greenery-1",
+      "direction": "greenery",
+      "title": "Дворовые скверы",
+      "description": "Небольшие зелёные пространства в наиболее плотных кварталах.",
+      "cost": 12,
+      "implementationMonths": 4,
+      "effects": [
+        {
+          "districtId": "center",
+          "deltas": {
+            "transport": 0,
+            "greenery": 12,
+            "social": 0,
+            "safety": 2,
+            "services": -1
+          }
+        },
+        {
+          "districtId": "south",
+          "deltas": {
+            "transport": 0,
+            "greenery": 9,
+            "social": 0,
+            "safety": 2,
+            "services": -1
+          }
+        },
+        {
+          "districtId": "east",
+          "deltas": {
+            "transport": 0,
+            "greenery": 13,
+            "social": 0,
+            "safety": 2,
+            "services": -1
+          }
+        },
+        {
+          "districtId": "riverside",
+          "deltas": {
+            "transport": 0,
+            "greenery": 4,
+            "social": 0,
+            "safety": 0,
+            "services": 0
+          }
+        }
+      ],
+      "tradeoffs": [
+        "Локальные скверы не образуют единой сети; нужен уход."
+      ],
+      "risks": [
+        "Согласование дворов и доступ к поливу могут ограничить охват."
+      ]
+    },
+    {
+      "id": "greenery-2",
+      "direction": "greenery",
+      "title": "Зелёные коридоры",
+      "description": "Связанные пешеходные зелёные маршруты через несколько районов.",
+      "cost": 20,
+      "implementationMonths": 8,
+      "effects": [
+        {
+          "districtId": "center",
+          "deltas": {
+            "transport": -2,
+            "greenery": 10,
+            "social": 0,
+            "safety": 3,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "north",
+          "deltas": {
+            "transport": -1,
+            "greenery": 8,
+            "social": 0,
+            "safety": 2,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "south",
+          "deltas": {
+            "transport": -2,
+            "greenery": 12,
+            "social": 0,
+            "safety": 3,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "east",
+          "deltas": {
+            "transport": -2,
+            "greenery": 14,
+            "social": 0,
+            "safety": 3,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "west",
+          "deltas": {
+            "transport": 0,
+            "greenery": 5,
+            "social": 0,
+            "safety": 2,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "riverside",
+          "deltas": {
+            "transport": -1,
+            "greenery": 8,
+            "social": 0,
+            "safety": 3,
+            "services": 0
+          }
+        }
+      ],
+      "tradeoffs": [
+        "Часть дорожного пространства выделяется под зелёные маршруты."
+      ],
+      "risks": [
+        "Нужна согласованная работа дорожных и озеленительных служб."
+      ]
+    },
+    {
+      "id": "greenery-3",
+      "direction": "greenery",
+      "title": "Лесопарковый пояс",
+      "description": "Крупные посадки на северной, западной и прибрежной периферии.",
+      "cost": 28,
+      "implementationMonths": 12,
+      "effects": [
+        {
+          "districtId": "center",
+          "deltas": {
+            "transport": 0,
+            "greenery": 2,
+            "social": 0,
+            "safety": 0,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "north",
+          "deltas": {
+            "transport": 0,
+            "greenery": 21,
+            "social": 0,
+            "safety": 0,
+            "services": -3
+          }
+        },
+        {
+          "districtId": "south",
+          "deltas": {
+            "transport": 0,
+            "greenery": 3,
+            "social": 0,
+            "safety": 0,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "east",
+          "deltas": {
+            "transport": 0,
+            "greenery": 3,
+            "social": 0,
+            "safety": 0,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "west",
+          "deltas": {
+            "transport": 0,
+            "greenery": 22,
+            "social": 0,
+            "safety": 0,
+            "services": -3
+          }
+        },
+        {
+          "districtId": "riverside",
+          "deltas": {
+            "transport": 0,
+            "greenery": 24,
+            "social": 0,
+            "safety": 0,
+            "services": -4
+          }
+        }
+      ],
+      "tradeoffs": [
+        "Максимальная выгода на периферии; дефицит зелени в центре и на востоке остаётся."
+      ],
+      "risks": [
+        "Приживаемость посадок и организация ухода требуют контроля."
+      ]
+    },
+    {
+      "id": "social-1",
+      "direction": "social",
+      "title": "Модернизация объектов",
+      "description": "Ремонт и повышение доступности действующих учреждений.",
+      "cost": 12,
+      "implementationMonths": 5,
+      "effects": [
+        {
+          "districtId": "center",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 11,
+            "safety": 1,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "north",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 4,
+            "safety": 0,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "south",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 3,
+            "safety": 0,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "east",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 9,
+            "safety": 1,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "riverside",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 10,
+            "safety": 1,
+            "services": 0
+          }
+        }
+      ],
+      "tradeoffs": [
+        "Лучше использует существующие объекты, но слабо расширяет сеть на окраинах."
+      ],
+      "risks": [
+        "Работы придётся совмещать с текущим обслуживанием жителей."
+      ]
+    },
+    {
+      "id": "social-2",
+      "direction": "social",
+      "title": "Модульные школы и поликлиники",
+      "description": "Новые модульные объекты в районах с наиболее слабой социальной инфраструктурой.",
+      "cost": 20,
+      "implementationMonths": 9,
+      "effects": [
+        {
+          "districtId": "center",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 2,
+            "safety": 0,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "north",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 17,
+            "safety": 0,
+            "services": -2
+          }
+        },
+        {
+          "districtId": "south",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 20,
+            "safety": 0,
+            "services": -3
+          }
+        },
+        {
+          "districtId": "east",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 5,
+            "safety": 0,
+            "services": -1
+          }
+        },
+        {
+          "districtId": "west",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 18,
+            "safety": 0,
+            "services": -2
+          }
+        },
+        {
+          "districtId": "riverside",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 3,
+            "safety": 0,
+            "services": 0
+          }
+        }
+      ],
+      "tradeoffs": [
+        "Новая сеть увеличивает нагрузку на коммунальное обслуживание."
+      ],
+      "risks": [
+        "Необходимо одновременно подготовить площадки и персонал."
+      ]
+    },
+    {
+      "id": "social-3",
+      "direction": "social",
+      "title": "Крупный социальный кластер",
+      "description": "Концентрация новых социальных мощностей в центре и восточной части.",
+      "cost": 28,
+      "implementationMonths": 12,
+      "effects": [
+        {
+          "districtId": "center",
+          "deltas": {
+            "transport": -4,
+            "greenery": 0,
+            "social": 22,
+            "safety": 0,
+            "services": -3
+          }
+        },
+        {
+          "districtId": "north",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 3,
+            "safety": 0,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "south",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 4,
+            "safety": 0,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "east",
+          "deltas": {
+            "transport": -5,
+            "greenery": 0,
+            "social": 24,
+            "safety": 0,
+            "services": -4
+          }
+        },
+        {
+          "districtId": "west",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 2,
+            "safety": 0,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "riverside",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 3,
+            "safety": 0,
+            "services": 0
+          }
+        }
+      ],
+      "tradeoffs": [
+        "Концентрация услуг увеличивает поездки и оставляет часть районов с малой выгодой."
+      ],
+      "risks": [
+        "Крупный объект требует согласованного ввода нескольких систем."
+      ]
+    },
+    {
+      "id": "safety-1",
+      "direction": "safety",
+      "title": "Освещение улиц",
+      "description": "Освещение недостаточно оборудованных улиц и общественных пространств.",
+      "cost": 12,
+      "implementationMonths": 4,
+      "effects": [
+        {
+          "districtId": "center",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 3,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "north",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 12,
+            "services": -1
+          }
+        },
+        {
+          "districtId": "south",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 6,
+            "services": -1
+          }
+        },
+        {
+          "districtId": "east",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 14,
+            "services": -1
+          }
+        },
+        {
+          "districtId": "west",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 4,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "riverside",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 15,
+            "services": -1
+          }
+        }
+      ],
+      "tradeoffs": [
+        "Новая сеть требует обслуживания и не решает все транспортные риски."
+      ],
+      "risks": [
+        "Возможны задержки подключения и обслуживания светильников."
+      ]
+    },
+    {
+      "id": "safety-2",
+      "direction": "safety",
+      "title": "Безопасные переходы",
+      "description": "Переустройство переходов и школьных зон в жилых районах.",
+      "cost": 20,
+      "implementationMonths": 7,
+      "effects": [
+        {
+          "districtId": "center",
+          "deltas": {
+            "transport": -2,
+            "greenery": 0,
+            "social": 0,
+            "safety": 10,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "north",
+          "deltas": {
+            "transport": -3,
+            "greenery": 0,
+            "social": 0,
+            "safety": 15,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "south",
+          "deltas": {
+            "transport": -3,
+            "greenery": 0,
+            "social": 0,
+            "safety": 18,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "east",
+          "deltas": {
+            "transport": -1,
+            "greenery": 0,
+            "social": 0,
+            "safety": 6,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "west",
+          "deltas": {
+            "transport": -3,
+            "greenery": 0,
+            "social": 0,
+            "safety": 17,
+            "services": 0
+          }
+        },
+        {
+          "districtId": "riverside",
+          "deltas": {
+            "transport": -1,
+            "greenery": 0,
+            "social": 0,
+            "safety": 7,
+            "services": 0
+          }
+        }
+      ],
+      "tradeoffs": [
+        "Снижение скорости движения улучшает безопасность, но уменьшает транспортный показатель."
+      ],
+      "risks": [
+        "Нужно согласовать схемы движения и обеспечить доступность переходов."
+      ]
+    },
+    {
+      "id": "safety-3",
+      "direction": "safety",
+      "title": "Обновление аварийно-спасательной инфраструктуры",
+      "description": "Обновление оборудования и пунктов реагирования в уязвимых районах.",
+      "cost": 28,
+      "implementationMonths": 11,
+      "effects": [
+        {
+          "districtId": "center",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 4,
+            "services": 1
+          }
+        },
+        {
+          "districtId": "north",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 5,
+            "services": 1
+          }
+        },
+        {
+          "districtId": "south",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 18,
+            "services": 4
+          }
+        },
+        {
+          "districtId": "east",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 22,
+            "services": 5
+          }
+        },
+        {
+          "districtId": "west",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 4,
+            "services": 1
+          }
+        },
+        {
+          "districtId": "riverside",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 24,
+            "services": 5
+          }
+        }
+      ],
+      "tradeoffs": [
+        "Основные ресурсы концентрируются в трёх районах; уличная безопасность остальных меняется мало."
+      ],
+      "risks": [
+        "Поставка оборудования и обучение персонала могут идти с разной скоростью."
+      ]
+    },
+    {
+      "id": "services-1",
+      "direction": "services",
+      "title": "Диспетчеризация заявок",
+      "description": "Единый порядок приёма, маршрутизации и контроля обращений.",
+      "cost": 12,
+      "implementationMonths": 3,
+      "effects": [
+        {
+          "districtId": "center",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 1,
+            "services": 7
+          }
+        },
+        {
+          "districtId": "north",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 1,
+            "services": 6
+          }
+        },
+        {
+          "districtId": "south",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 1,
+            "services": 6
+          }
+        },
+        {
+          "districtId": "east",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 1,
+            "services": 7
+          }
+        },
+        {
+          "districtId": "west",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 1,
+            "services": 6
+          }
+        },
+        {
+          "districtId": "riverside",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 1,
+            "services": 5
+          }
+        }
+      ],
+      "tradeoffs": [
+        "Управление обращениями не заменяет физический ремонт инфраструктуры."
+      ],
+      "risks": [
+        "Без обучения служб цифровой инструмент может не ускорить исполнение."
+      ]
+    },
+    {
+      "id": "services-2",
+      "direction": "services",
+      "title": "Обновление вывоза отходов",
+      "description": "Новые маршруты и площадки для районов с низким качеством обслуживания.",
+      "cost": 20,
+      "implementationMonths": 7,
+      "effects": [
+        {
+          "districtId": "center",
+          "deltas": {
+            "transport": 0,
+            "greenery": 1,
+            "social": 0,
+            "safety": 0,
+            "services": 3
+          }
+        },
+        {
+          "districtId": "north",
+          "deltas": {
+            "transport": 0,
+            "greenery": 1,
+            "social": 0,
+            "safety": 0,
+            "services": 4
+          }
+        },
+        {
+          "districtId": "south",
+          "deltas": {
+            "transport": -1,
+            "greenery": 4,
+            "social": 0,
+            "safety": 0,
+            "services": 17
+          }
+        },
+        {
+          "districtId": "east",
+          "deltas": {
+            "transport": -2,
+            "greenery": 5,
+            "social": 0,
+            "safety": 0,
+            "services": 19
+          }
+        },
+        {
+          "districtId": "west",
+          "deltas": {
+            "transport": 0,
+            "greenery": 1,
+            "social": 0,
+            "safety": 0,
+            "services": 4
+          }
+        },
+        {
+          "districtId": "riverside",
+          "deltas": {
+            "transport": -1,
+            "greenery": 4,
+            "social": 0,
+            "safety": 0,
+            "services": 18
+          }
+        }
+      ],
+      "tradeoffs": [
+        "Дополнительные рейсы создают небольшую нагрузку на дороги."
+      ],
+      "risks": [
+        "Поставка техники и согласование площадок определяют сроки."
+      ]
+    },
+    {
+      "id": "services-3",
+      "direction": "services",
+      "title": "Комплексная модернизация коммунального обслуживания",
+      "description": "Обновление сетей и оборудования в центре, на севере и западе.",
+      "cost": 28,
+      "implementationMonths": 12,
+      "effects": [
+        {
+          "districtId": "center",
+          "deltas": {
+            "transport": -4,
+            "greenery": -2,
+            "social": 0,
+            "safety": 2,
+            "services": 19
+          }
+        },
+        {
+          "districtId": "north",
+          "deltas": {
+            "transport": -4,
+            "greenery": -2,
+            "social": 0,
+            "safety": 3,
+            "services": 24
+          }
+        },
+        {
+          "districtId": "south",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 0,
+            "services": 4
+          }
+        },
+        {
+          "districtId": "east",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 0,
+            "services": 5
+          }
+        },
+        {
+          "districtId": "west",
+          "deltas": {
+            "transport": -4,
+            "greenery": -2,
+            "social": 0,
+            "safety": 3,
+            "services": 25
+          }
+        },
+        {
+          "districtId": "riverside",
+          "deltas": {
+            "transport": 0,
+            "greenery": 0,
+            "social": 0,
+            "safety": 0,
+            "services": 4
+          }
+        }
+      ],
+      "tradeoffs": [
+        "Работы временно ухудшают транспорт и зелёные пространства; охват неравномерен."
+      ],
+      "risks": [
+        "Вскрытие сетей может выявить дополнительные сложности в пределах заложенных расходов."
+      ]
+    }
+  ]
+}
