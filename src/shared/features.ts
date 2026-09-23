@@ -47,6 +47,19 @@ export const CityEventSchema = z.object({
   effects: z.array(z.object({ district_id: z.string().nullable(), deltas: EffectsSchema }).strict()),
 }).strict();
 export type CityEvent = z.infer<typeof CityEventSchema>;
+export const MAP_EVENTS_VERSION = "1.0.0";
+export const MapEventPlacementSchema = z.object({ event_id: z.string().min(1), district_id: z.string().nullable() }).strict();
+export type MapEventPlacement = z.infer<typeof MapEventPlacementSchema>;
+export const MapEventsRequestSchema = z.object({
+  dataset_version: z.string(), map_events_version: z.literal(MAP_EVENTS_VERSION),
+  decisions: z.array(DecisionSchema).max(5), events: z.array(MapEventPlacementSchema).max(3),
+}).strict();
+export const MapEventsResponseSchema = z.object({
+  dataset_version: z.string(), map_events_version: z.literal(MAP_EVENTS_VERSION),
+  mode: z.literal("event_practice"), eligible_for_leaderboard: z.literal(false),
+  events: z.array(MapEventPlacementSchema).max(3), simulation: SimulationResultSchema,
+  emergency_reserve: z.number().nonnegative(), final_score: z.number().nullable(),
+}).strict();
 export const EventRequestSchema = SimulateRequestSchema.extend({
   event_version: z.literal(FEATURES_VERSION), event_id: z.string().min(1),
 }).strict();
